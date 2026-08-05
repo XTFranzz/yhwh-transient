@@ -1,0 +1,33 @@
+import { v } from "convex/values";
+import { createAccount } from "@convex-dev/auth/server";
+import { action, internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
+
+// One-time escape hatch for creating the very first owner_admin login, before
+// any staffProfiles exist (and therefore before anyone can use createStaffAccount).
+// Run once via: npx convex run bootstrap:bootstrapFirstOwner '{"email":"...","password":"...","displayName":"..."}'
+export const anyStaffExists = internalQuery({
+  args: {},
+  handler: async (ctx) => (await ctx.db.query("staffProfiles").first()) !== null,
+});
+
+export const bootstrapFirstOwner = action({
+  args: { email: v.string(), password: v.string(), displayName: v.string() },
+  handler: async (ctx, args): Promise<{ userId: string }> => {
+    const alreadyBootstrapped = await ctx.runQuery(internal.bootstrap.anyStaffExists, {});
+    if (alreadyBootstrapped) {
+      throw new Error("Staff already exist; use staff.createStaffAccount (as owner_admin) instead");
+    }
+    const { user } = await createAccount(ctx, {
+      provider: "password",
+      account: { id: args.email, secret: args.password },
+      profile: { email: args.email, name: args.displayName },
+    });
+    await ctx.runMutation(internal.staff.attachProfile, {
+      userId: user._id,
+      displayName: args.displayName,
+      role: "owner_admin",
+    });
+    return { userId: user._id };
+  },
+});

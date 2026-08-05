@@ -1,0 +1,80 @@
+@import "tailwindcss";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+@theme {
+  --font-sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+
+  /* Brand: muted brass/gold accent, used sparingly against a white/gray/black canvas. */
+  --color-brand-50: #fbf8f2;
+  --color-brand-100: #f5eddd;
+  --color-brand-200: #e9d9b0;
+  --color-brand-300: #dcc17e;
+  --color-brand-400: #cda657;
+  --color-brand-500: #b98d3e;
+  --color-brand-600: #99732f;
+  --color-brand-700: #7a5b26;
+  --color-brand-800: #614920;
+  --color-brand-900: #4e3b1b;
+
+  --color-teal-50: #effcfa;
+  --color-teal-100: #d7f5f0;
+  --color-teal-200: #b3ebe2;
+  --color-teal-300: #7dd9ca;
+  --color-teal-400: #43bfab;
+  --color-teal-500: #22a091;
+  --color-teal-600: #158176;
+  --color-teal-700: #146860;
+  --color-teal-800: #14524d;
+  --color-teal-900: #124440;
+
+  --color-ink-50: #f7f7f8;
+  --color-ink-100: #eeeef0;
+  --color-ink-200: #d9d9de;
+  --color-ink-300: #b6b6c0;
+  --color-ink-400: #8c8c9a;
+  --color-ink-500: #6b6b7a;
+  --color-ink-600: #545462;
+  --color-ink-700: #434350;
+  --color-ink-800: #2c2c36;
+  --color-ink-900: #17171d;
+
+  --shadow-card: 0 2px 8px rgba(23, 23, 29, 0.06), 0 1px 2px rgba(23, 23, 29, 0.08);
+  --shadow-card-hover: 0 12px 28px rgba(23, 23, 29, 0.12), 0 4px 10px rgba(23, 23, 29, 0.08);
+  --shadow-popover: 0 16px 40px rgba(23, 23, 29, 0.18);
+
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-slide-up: slide-up 0.25s ease-out;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-ink-900);
+  background: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+* {
+  box-sizing: border-box;
+}
