@@ -258,3 +258,62 @@ test("tour bookings must span exactly one day", async () => {
     }),
   ).rejects.toThrow(/single day/);
 });
+
+test("staff manual booking without a recorded payment stays pending", async () => {
+  const t = convexTest(schema);
+  const { asOwner, listingId } = await setupOwnerWithListing(t);
+
+  const result = await asOwner.mutation(api.bookings.createByStaff, {
+    listingId,
+    startDate: "2099-08-01",
+    endDate: "2099-08-03",
+    guestCount: 2,
+    guest: GUEST,
+  });
+
+  const booking = await t.run(async (ctx) => ctx.db.get(result.bookingId));
+  expect(booking?.status).toBe("pending_payment");
+  expect(booking?.source).toBe("admin_manual");
+});
+
+test("staff manual booking with a recorded cash payment confirms immediately", async () => {
+  const t = convexTest(schema);
+  const { asOwner, listingId } = await setupOwnerWithListing(t);
+
+  const result = await asOwner.mutation(api.bookings.createByStaff, {
+    listingId,
+    startDate: "2099-08-10",
+    endDate: "2099-08-12",
+    guestCount: 2,
+    guest: GUEST,
+    initialPayment: { amountCentavos: 200000, method: "cash" },
+  });
+
+  const booking = await t.run(async (ctx) => ctx.db.get(result.bookingId));
+  expect(booking?.status).toBe("confirmed");
+
+  const payments = await t.run(async (ctx) =>
+    ctx.db
+      .query("payments")
+      .withIndex("by_bookingId", (q) => q.eq("bookingId", result.bookingId))
+      .collect(),
+  );
+  expect(payments).toHaveLength(1);
+  expect(payments[0].status).toBe("verified");
+  expect(payments[0].method).toBe("cash");
+});
+
+test("non-staff cannot create a manual booking", async () => {
+  const t = convexTest(schema);
+  const { listingId } = await setupOwnerWithListing(t);
+
+  await expect(
+    t.mutation(api.bookings.createByStaff, {
+      listingId,
+      startDate: "2099-08-20",
+      endDate: "2099-08-22",
+      guestCount: 2,
+      guest: GUEST,
+    }),
+  ).rejects.toThrow(/Forbidden|Not authenticated/);
+});

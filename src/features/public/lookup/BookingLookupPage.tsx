@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { formatDate, formatMoney, formatStatus } from "../../../lib/format";
+import { formatDate, formatMoney, formatPaymentMethod, formatStatus } from "../../../lib/format";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { StatusBadge } from "../../../components/ui/Badge";
@@ -77,7 +77,7 @@ export function BookingLookupPage() {
                 {result.payments.map((p) => (
                   <li key={p._id} className="flex items-center justify-between text-sm text-ink-600">
                     <span>
-                      {formatMoney(p.amountCentavos)} via {p.method === "gcash" ? "GCash" : "Bank transfer"}
+                      {formatMoney(p.amountCentavos)} via {formatPaymentMethod(p.method)}
                     </span>
                     <StatusBadge status={p.status} label={formatStatus(p.status)} />
                   </li>

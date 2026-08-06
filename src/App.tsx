@@ -23,6 +23,7 @@ import { ListingsListPage } from "./features/admin/listings/ListingsListPage";
 import { ListingFormPage } from "./features/admin/listings/ListingFormPage";
 import { ReservationsListPage } from "./features/admin/reservations/ReservationsListPage";
 import { ReservationDetailPage } from "./features/admin/reservations/ReservationDetailPage";
+import { NewReservationPage } from "./features/admin/reservations/NewReservationPage";
 import { PaymentsQueuePage } from "./features/admin/payments/PaymentsQueuePage";
 import { CustomersListPage } from "./features/admin/customers/CustomersListPage";
 import { StaffListPage } from "./features/admin/staff/StaffListPage";
@@ -58,6 +59,7 @@ export default function App() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="reservations" element={<ReservationsListPage />} />
+          <Route path="reservations/new" element={<NewReservationPage />} />
           <Route path="reservations/:bookingId" element={<ReservationDetailPage />} />
           <Route path="listings" element={<ListingsListPage />} />
           <Route path="listings/new" element={<ListingFormPage />} />

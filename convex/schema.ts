@@ -117,6 +117,10 @@ export default defineSchema({
       v.literal("no_show"),
     ),
     guestNotes: v.optional(v.string()),
+    // Distinguishes guest self-service bookings from ones staff entered on a
+    // guest's behalf (walk-in, phone, Messenger). Optional so pre-existing
+    // dev data (created before this field existed) still validates.
+    source: v.optional(v.union(v.literal("public_site"), v.literal("admin_manual"))),
   })
     .index("by_referenceNumber", ["referenceNumber"])
     .index("by_guestId", ["guestId"])
@@ -127,9 +131,11 @@ export default defineSchema({
 
   payments: defineTable({
     bookingId: v.id("bookings"),
-    receiptStorageId: v.id("_storage"),
+    // Optional: staff recording a cash/in-person payment while creating a
+    // manual reservation has no receipt image to attach.
+    receiptStorageId: v.optional(v.id("_storage")),
     amountCentavos: v.number(),
-    method: v.union(v.literal("gcash"), v.literal("bank_transfer")),
+    method: v.union(v.literal("gcash"), v.literal("bank_transfer"), v.literal("cash")),
     status: v.union(v.literal("submitted"), v.literal("verified"), v.literal("rejected")),
     rejectionReason: v.optional(v.string()),
     reviewedBy: v.optional(v.id("users")),

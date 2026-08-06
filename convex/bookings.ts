@@ -1,5 +1,8 @@
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { mutation, query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 import { requireRole } from "./lib/auth";
 import { generateUniqueReferenceNumber } from "./lib/referenceNumber";
 import { isValidDateString, nightsBetween, todayDateString } from "./lib/dateRanges";
@@ -14,6 +17,8 @@ const bookingStatuses = [
   "no_show",
 ] as const;
 
+const paymentMethods = ["gcash", "bank_transfer", "cash"] as const;
+
 // Legal forward transitions per current status. Cancellation/no-show are only
 // reachable from states that haven't already reached a terminal outcome.
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
@@ -25,6 +30,84 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   no_show: [],
 };
 
+interface CreateBookingArgs {
+  listingId: Id<"listings">;
+  startDate: string;
+  endDate: string;
+  guestCount: number;
+  guest: { fullName: string; email: string; phone: string };
+  guestNotes?: string;
+  source: "public_site" | "admin_manual";
+}
+
+// Shared by the public booking flow and admin manual-entry — one place for
+// availability/pricing rules so both paths can never drift apart.
+async function createBookingCore(ctx: MutationCtx, args: CreateBookingArgs) {
+  if (!isValidDateString(args.startDate) || !isValidDateString(args.endDate)) {
+    throw new Error("Dates must be in YYYY-MM-DD format");
+  }
+  if (args.startDate >= args.endDate) throw new Error("endDate must be after startDate");
+  if (args.startDate < todayDateString()) throw new Error("Check-in date is in the past");
+
+  const listing = await ctx.db.get(args.listingId);
+  if (!listing || listing.status !== "active") throw new Error("Listing is not bookable");
+  if (args.guestCount < 1 || args.guestCount > listing.maxGuests) {
+    throw new Error(`This listing accommodates up to ${listing.maxGuests} guests`);
+  }
+
+  if (listing.type === "tour") {
+    if (nightsBetween(args.startDate, args.endDate) !== 1) throw new Error("Tours are booked for a single day");
+    const tourDetails = await ctx.db
+      .query("tourDetails")
+      .withIndex("by_listingId", (q) => q.eq("listingId", args.listingId))
+      .unique();
+    if (tourDetails && args.guestCount < tourDetails.minPax) {
+      throw new Error(`This tour requires at least ${tourDetails.minPax} guests`);
+    }
+  }
+
+  // Reads + writes below execute as one serializable Convex transaction, so
+  // this check-then-insert is race-safe without a DB-level exclusion constraint.
+  const available = await isListingAvailable(ctx, args.listingId, args.startDate, args.endDate);
+  if (!available) throw new Error("Selected dates are no longer available");
+
+  const guest = await ctx.db
+    .query("guests")
+    .withIndex("by_email_phone", (q) => q.eq("email", args.guest.email).eq("phone", args.guest.phone))
+    .unique();
+  const guestId = guest
+    ? (await ctx.db.patch(guest._id, { fullName: args.guest.fullName }), guest._id)
+    : await ctx.db.insert("guests", args.guest);
+
+  const referenceNumber = await generateUniqueReferenceNumber(ctx);
+  // Houses/vehicles are priced per night/day of the stay; tours are priced per head for a single day.
+  const totalCentavos =
+    listing.type === "tour"
+      ? listing.basePriceCentavos * args.guestCount
+      : listing.basePriceCentavos * nightsBetween(args.startDate, args.endDate);
+  const bookingId = await ctx.db.insert("bookings", {
+    referenceNumber,
+    listingId: args.listingId,
+    guestId,
+    startDate: args.startDate,
+    endDate: args.endDate,
+    guestCount: args.guestCount,
+    totalCentavos,
+    status: "pending_payment",
+    guestNotes: args.guestNotes,
+    source: args.source,
+  });
+  await ctx.db.insert("availabilityBlocks", {
+    listingId: args.listingId,
+    startDate: args.startDate,
+    endDate: args.endDate,
+    reason: "booking",
+    bookingId,
+  });
+
+  return { bookingId, referenceNumber, totalCentavos };
+}
+
 export const create = mutation({
   args: {
     listingId: v.id("listings"),
@@ -34,69 +117,55 @@ export const create = mutation({
     guest: v.object({ fullName: v.string(), email: v.string(), phone: v.string() }),
     guestNotes: v.optional(v.string()),
   },
+  handler: async (ctx, args) => createBookingCore(ctx, { ...args, source: "public_site" }),
+});
+
+// Staff-entered reservation (walk-in, phone call, Messenger) — same
+// availability/pricing rules as the public flow, via createBookingCore.
+// Optionally records payment already collected in person and confirms
+// immediately, instead of leaving the booking in pending_payment.
+export const createByStaff = mutation({
+  args: {
+    listingId: v.id("listings"),
+    startDate: v.string(),
+    endDate: v.string(),
+    guestCount: v.number(),
+    guest: v.object({ fullName: v.string(), email: v.string(), phone: v.string() }),
+    guestNotes: v.optional(v.string()),
+    initialPayment: v.optional(
+      v.object({
+        amountCentavos: v.number(),
+        method: v.union(...paymentMethods.map((m) => v.literal(m))),
+      }),
+    ),
+  },
   handler: async (ctx, args) => {
-    if (!isValidDateString(args.startDate) || !isValidDateString(args.endDate)) {
-      throw new Error("Dates must be in YYYY-MM-DD format");
-    }
-    if (args.startDate >= args.endDate) throw new Error("endDate must be after startDate");
-    if (args.startDate < todayDateString()) throw new Error("Check-in date is in the past");
+    await requireRole(ctx, ["owner_admin", "front_desk"]);
+    const userId = (await getAuthUserId(ctx))!;
 
-    const listing = await ctx.db.get(args.listingId);
-    if (!listing || listing.status !== "active") throw new Error("Listing is not bookable");
-    if (args.guestCount < 1 || args.guestCount > listing.maxGuests) {
-      throw new Error(`This listing accommodates up to ${listing.maxGuests} guests`);
-    }
-
-    if (listing.type === "tour") {
-      if (nightsBetween(args.startDate, args.endDate) !== 1) throw new Error("Tours are booked for a single day");
-      const tourDetails = await ctx.db
-        .query("tourDetails")
-        .withIndex("by_listingId", (q) => q.eq("listingId", args.listingId))
-        .unique();
-      if (tourDetails && args.guestCount < tourDetails.minPax) {
-        throw new Error(`This tour requires at least ${tourDetails.minPax} guests`);
-      }
-    }
-
-    // Reads + writes below execute as one serializable Convex transaction, so
-    // this check-then-insert is race-safe without a DB-level exclusion constraint.
-    const available = await isListingAvailable(ctx, args.listingId, args.startDate, args.endDate);
-    if (!available) throw new Error("Selected dates are no longer available");
-
-    let guest = await ctx.db
-      .query("guests")
-      .withIndex("by_email_phone", (q) => q.eq("email", args.guest.email).eq("phone", args.guest.phone))
-      .unique();
-    const guestId = guest
-      ? (await ctx.db.patch(guest._id, { fullName: args.guest.fullName }), guest._id)
-      : await ctx.db.insert("guests", args.guest);
-
-    const referenceNumber = await generateUniqueReferenceNumber(ctx);
-    // Houses/vehicles are priced per night/day of the stay; tours are priced per head for a single day.
-    const totalCentavos =
-      listing.type === "tour"
-        ? listing.basePriceCentavos * args.guestCount
-        : listing.basePriceCentavos * nightsBetween(args.startDate, args.endDate);
-    const bookingId = await ctx.db.insert("bookings", {
-      referenceNumber,
+    const result = await createBookingCore(ctx, {
       listingId: args.listingId,
-      guestId,
       startDate: args.startDate,
       endDate: args.endDate,
       guestCount: args.guestCount,
-      totalCentavos,
-      status: "pending_payment",
+      guest: args.guest,
       guestNotes: args.guestNotes,
-    });
-    await ctx.db.insert("availabilityBlocks", {
-      listingId: args.listingId,
-      startDate: args.startDate,
-      endDate: args.endDate,
-      reason: "booking",
-      bookingId,
+      source: "admin_manual",
     });
 
-    return { bookingId, referenceNumber, totalCentavos };
+    if (args.initialPayment) {
+      await ctx.db.insert("payments", {
+        bookingId: result.bookingId,
+        amountCentavos: args.initialPayment.amountCentavos,
+        method: args.initialPayment.method,
+        status: "verified",
+        reviewedBy: userId,
+        reviewedAt: Date.now(),
+      });
+      await ctx.db.patch(result.bookingId, { status: "confirmed" });
+    }
+
+    return result;
   },
 });
 
@@ -175,7 +244,10 @@ export const getDetail = query({
           .query("payments")
           .withIndex("by_bookingId", (q) => q.eq("bookingId", booking._id))
           .collect()
-      ).map(async (p) => ({ ...p, receiptUrl: await ctx.storage.getUrl(p.receiptStorageId) })),
+      ).map(async (p) => ({
+        ...p,
+        receiptUrl: p.receiptStorageId ? await ctx.storage.getUrl(p.receiptStorageId) : null,
+      })),
     );
     return { booking, guest, listing, payments };
   },

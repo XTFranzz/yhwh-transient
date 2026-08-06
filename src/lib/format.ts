@@ -29,3 +29,13 @@ const STATUS_LABELS: Record<string, string> = {
 export function formatStatus(status: string): string {
   return STATUS_LABELS[status] ?? status;
 }
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  gcash: "GCash",
+  bank_transfer: "Bank transfer",
+  cash: "Cash",
+};
+
+export function formatPaymentMethod(method: string): string {
+  return PAYMENT_METHOD_LABELS[method] ?? method;
+}

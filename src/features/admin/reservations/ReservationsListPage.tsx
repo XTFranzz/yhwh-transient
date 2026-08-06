@@ -4,6 +4,8 @@ import { api } from "../../../../convex/_generated/api";
 import { formatDate, formatMoney, formatStatus } from "../../../lib/format";
 import { StatusBadge } from "../../../components/ui/Badge";
 import { PageSpinner, EmptyState } from "../../../components/ui/Feedback";
+import { Button } from "../../../components/ui/Button";
+import { Icon } from "../../../components/ui/Icon";
 import { useReservationsFilterStore } from "../../../lib/store";
 
 const FILTERS = [
@@ -15,6 +17,8 @@ const FILTERS = [
   { value: "cancelled", label: "Cancelled" },
 ];
 
+const TYPE_ICON: Record<string, string> = { house: "house-door", vehicle: "truck", tour: "signpost-2" };
+
 export function ReservationsListPage() {
   const status = useReservationsFilterStore((s) => s.status);
   const setStatus = useReservationsFilterStore((s) => s.setStatus);
@@ -22,7 +26,12 @@ export function ReservationsListPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold text-ink-900">Reservations</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-ink-900">Reservations</h1>
+        <Link to="/admin/reservations/new">
+          <Button>+ New reservation</Button>
+        </Link>
+      </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map((f) => (
@@ -63,7 +72,12 @@ export function ReservationsListPage() {
                     </Link>
                     <span className="text-xs text-ink-400">{b.referenceNumber}</span>
                   </td>
-                  <td className="px-4 py-3">{b.listing?.title ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <span className="flex items-center gap-2">
+                      <Icon name={b.listing ? TYPE_ICON[b.listing.type] : "question-circle"} className="text-ink-400" />
+                      {b.listing?.title ?? "—"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     {formatDate(b.startDate)} → {formatDate(b.endDate)}
                   </td>

@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { formatDate, formatMoney, formatStatus } from "../../../lib/format";
+import { formatDate, formatMoney, formatPaymentMethod, formatStatus } from "../../../lib/format";
 import { Button } from "../../../components/ui/Button";
 import { StatusBadge } from "../../../components/ui/Badge";
 import { PageSpinner, ErrorBanner } from "../../../components/ui/Feedback";
@@ -104,7 +104,7 @@ export function ReservationDetailPage() {
                   )}
                   <div>
                     <p>
-                      {formatMoney(p.amountCentavos)} via {p.method === "gcash" ? "GCash" : "Bank transfer"}
+                      {formatMoney(p.amountCentavos)} via {formatPaymentMethod(p.method)}
                     </p>
                     {p.rejectionReason && <p className="text-xs text-red-600">{p.rejectionReason}</p>}
                   </div>

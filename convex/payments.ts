@@ -50,7 +50,8 @@ export const listQueue = query({
       payments.map(async (p) => {
         const booking = await ctx.db.get(p.bookingId);
         const guest = booking ? await ctx.db.get(booking.guestId) : null;
-        return { ...p, receiptUrl: await ctx.storage.getUrl(p.receiptStorageId), booking, guest };
+        const receiptUrl = p.receiptStorageId ? await ctx.storage.getUrl(p.receiptStorageId) : null;
+        return { ...p, receiptUrl, booking, guest };
       }),
     );
   },

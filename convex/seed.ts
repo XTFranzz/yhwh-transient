@@ -116,6 +116,7 @@ export const seedDemoData = internalMutation({
       guestCount: 3,
       totalCentavos: houses[0].basePriceCentavos * nightsBetween(booking1Start, booking1End),
       status: "confirmed",
+      source: "public_site",
     });
     await ctx.db.insert("availabilityBlocks", {
       listingId: listingIds[0],
@@ -138,6 +139,7 @@ export const seedDemoData = internalMutation({
       totalCentavos: houses[1].basePriceCentavos * nightsBetween(booking2Start, booking2End),
       status: "pending_payment",
       guestNotes: "Celebrating a birthday, requesting late check-out if possible.",
+      source: "public_site",
     });
     await ctx.db.insert("availabilityBlocks", {
       listingId: listingIds[1],

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { formatDate, formatMoney } from "../../../lib/format";
+import { formatDate, formatMoney, formatPaymentMethod } from "../../../lib/format";
 import { Button } from "../../../components/ui/Button";
 import { Textarea } from "../../../components/ui/Input";
 import { Modal } from "../../../components/ui/Modal";
@@ -70,7 +70,7 @@ export function PaymentsQueuePage() {
                   {p.booking?.referenceNumber}
                 </p>
                 <p className="mt-1 text-sm">
-                  {formatMoney(p.amountCentavos)} via {p.method === "gcash" ? "GCash" : "Bank transfer"}
+                  {formatMoney(p.amountCentavos)} via {formatPaymentMethod(p.method)}
                 </p>
               </div>
               <div className="flex gap-2">
