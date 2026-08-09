@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { AdminLayout } from "./layouts/AdminLayout";
 import { AdminGuard } from "./routes/AdminGuard";
+import { SplashScreen } from "./components/SplashScreen";
 
 import { HomePage } from "./features/public/listings/HomePage";
 import { SearchResultsPage } from "./features/public/listings/SearchResultsPage";
@@ -31,6 +32,7 @@ import { StaffListPage } from "./features/admin/staff/StaffListPage";
 export default function App() {
   return (
     <BrowserRouter>
+      <SplashScreen />
       <Routes>
         <Route element={<PublicLayout />}>
           <Route path="/" element={<HomePage />} />
