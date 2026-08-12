@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireRole } from "./lib/auth";
+import { requireRole, ANY_STAFF } from "./lib/auth";
 import { isValidDateString, rangesOverlap } from "./lib/dateRanges";
 import { isListingAvailable } from "./lib/availabilityHelpers";
 
@@ -24,7 +24,7 @@ export const isRangeAvailable = query({
 export const createManualBlock = mutation({
   args: { listingId: v.id("listings"), startDate: v.string(), endDate: v.string() },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin", "front_desk"]);
+    await requireRole(ctx, ANY_STAFF);
     if (!isValidDateString(args.startDate) || !isValidDateString(args.endDate)) {
       throw new Error("Dates must be in YYYY-MM-DD format");
     }
@@ -50,7 +50,7 @@ export const createManualBlock = mutation({
 export const releaseBlock = mutation({
   args: { blockId: v.id("availabilityBlocks") },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin", "front_desk"]);
+    await requireRole(ctx, ANY_STAFF);
     const block = await ctx.db.get(args.blockId);
     if (!block) throw new Error("Block not found");
     if (block.reason !== "manual_block") {

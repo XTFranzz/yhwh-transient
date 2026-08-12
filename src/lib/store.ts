@@ -1,40 +1,40 @@
 import { create } from "zustand";
 
-interface BookingDraft {
+interface InquiryDraft {
   listingSlug: string | null;
   checkIn: string | null;
   checkOut: string | null;
   guestCount: number;
-  guest: { fullName: string; email: string; phone: string };
-  guestNotes: string;
+  customer: { fullName: string; email: string; phone: string };
+  notes: string;
 }
 
-interface BookingDraftStore {
-  draft: BookingDraft;
+interface InquiryDraftStore {
+  draft: InquiryDraft;
   setDates: (checkIn: string, checkOut: string) => void;
   setListing: (slug: string) => void;
   setGuestCount: (count: number) => void;
-  setGuestInfo: (guest: BookingDraft["guest"]) => void;
-  setGuestNotes: (notes: string) => void;
+  setCustomerInfo: (customer: InquiryDraft["customer"]) => void;
+  setNotes: (notes: string) => void;
   reset: () => void;
 }
 
-const emptyDraft: BookingDraft = {
+const emptyDraft: InquiryDraft = {
   listingSlug: null,
   checkIn: null,
   checkOut: null,
   guestCount: 1,
-  guest: { fullName: "", email: "", phone: "" },
-  guestNotes: "",
+  customer: { fullName: "", email: "", phone: "" },
+  notes: "",
 };
 
-export const useBookingDraftStore = create<BookingDraftStore>((set) => ({
+export const useInquiryDraftStore = create<InquiryDraftStore>((set) => ({
   draft: emptyDraft,
   setDates: (checkIn, checkOut) => set((s) => ({ draft: { ...s.draft, checkIn, checkOut } })),
   setListing: (slug) => set((s) => ({ draft: { ...s.draft, listingSlug: slug } })),
   setGuestCount: (guestCount) => set((s) => ({ draft: { ...s.draft, guestCount } })),
-  setGuestInfo: (guest) => set((s) => ({ draft: { ...s.draft, guest } })),
-  setGuestNotes: (guestNotes) => set((s) => ({ draft: { ...s.draft, guestNotes } })),
+  setCustomerInfo: (customer) => set((s) => ({ draft: { ...s.draft, customer } })),
+  setNotes: (notes) => set((s) => ({ draft: { ...s.draft, notes } })),
   reset: () => set({ draft: emptyDraft }),
 }));
 

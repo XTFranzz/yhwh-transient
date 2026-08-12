@@ -1,13 +1,14 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { formatMoney } from "../../../lib/format";
 import { Button } from "../../../components/ui/Button";
 import { Input, Select, Textarea } from "../../../components/ui/Input";
-import { ErrorBanner } from "../../../components/ui/Feedback";
+import { ErrorBanner, PageSpinner } from "../../../components/ui/Feedback";
 import { Icon } from "../../../components/ui/Icon";
+import { CustomerPicker, type CustomerValue } from "../customers/CustomerPicker";
 
 type ListingType = "house" | "vehicle" | "tour";
 
@@ -25,27 +26,70 @@ function addOneDay(dateStr: string): string {
 
 export function NewReservationPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const inquiryId = searchParams.get("inquiryId") as Id<"inquiries"> | null;
+  const customerIdParam = searchParams.get("customerId") as Id<"customers"> | null;
+
+  const inquiry = useQuery(api.inquiries.getDetail, inquiryId ? { inquiryId } : "skip");
+  const preloadedCustomer = useQuery(
+    api.customers.get,
+    customerIdParam && !inquiryId ? { customerId: customerIdParam } : "skip",
+  );
   const [type, setType] = useState<ListingType>("house");
   const listings = useQuery(api.listings.list, { type });
   const createByStaff = useMutation(api.bookings.createByStaff);
+  const convertInquiry = useMutation(api.inquiries.convertToBooking);
 
   const [listingId, setListingId] = useState<Id<"listings"> | "">("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [guestCount, setGuestCount] = useState(1);
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [customer, setCustomer] = useState<CustomerValue | null>(null);
   const [notes, setNotes] = useState("");
   const [markPaid, setMarkPaid] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"gcash" | "bank_transfer" | "cash">("cash");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
+
+  // Pre-fill everything from the inquiry once it loads, and lock the
+  // type/listing choice since conversion is tied to that specific listing.
+  useEffect(() => {
+    if (!inquiry || prefilled) return;
+    if (inquiry.listing) setType(inquiry.listing.type as ListingType);
+    setListingId(inquiry.listingId);
+    setStartDate(inquiry.startDate);
+    setEndDate(inquiry.endDate);
+    setGuestCount(inquiry.guestCount);
+    if (inquiry.customer) {
+      setCustomer({ fullName: inquiry.customer.fullName, email: inquiry.customer.email, phone: inquiry.customer.phone });
+    }
+    setNotes(inquiry.notes ?? "");
+    setPrefilled(true);
+  }, [inquiry, prefilled]);
+
+  // Pre-fill the customer from a "New reservation for this customer" link
+  // (from the customer detail page) — only when not converting an inquiry,
+  // which already supplies its own customer.
+  useEffect(() => {
+    if (!preloadedCustomer?.customer || prefilled) return;
+    setCustomer({
+      fullName: preloadedCustomer.customer.fullName,
+      email: preloadedCustomer.customer.email,
+      phone: preloadedCustomer.customer.phone,
+    });
+  }, [preloadedCustomer, prefilled]);
 
   const today = new Date().toISOString().slice(0, 10);
   const selectedListing = listings?.find((l) => l._id === listingId);
   const isTour = type === "tour";
+  const isConverting = Boolean(inquiryId);
+
+  if (isConverting && inquiry === undefined) return <PageSpinner />;
+  if (isConverting && inquiry === null) {
+    return <ErrorBanner message="This inquiry could not be found." />;
+  }
 
   const effectiveEndDate = isTour && startDate ? addOneDay(startDate) : endDate;
   const units =
@@ -81,8 +125,8 @@ export function NewReservationPage() {
       setError("Please select dates.");
       return;
     }
-    if (!fullName.trim() || !email.trim() || !phone.trim()) {
-      setError("Please fill in the guest's name, email, and phone number.");
+    if (!customer || !customer.fullName.trim() || !customer.email.trim() || !customer.phone.trim()) {
+      setError("Please search for or add a customer.");
       return;
     }
     if (markPaid && (!resolvedPaymentAmount || Number(resolvedPaymentAmount) <= 0)) {
@@ -92,17 +136,29 @@ export function NewReservationPage() {
 
     setSubmitting(true);
     try {
-      const result = await createByStaff({
-        listingId,
-        startDate,
-        endDate: effectiveEndDate,
-        guestCount,
-        guest: { fullName: fullName.trim(), email: email.trim(), phone: phone.trim() },
-        guestNotes: notes.trim() || undefined,
-        initialPayment: markPaid
-          ? { amountCentavos: Math.round(Number(resolvedPaymentAmount) * 100), method: paymentMethod }
-          : undefined,
-      });
+      const initialPayment = markPaid
+        ? { amountCentavos: Math.round(Number(resolvedPaymentAmount) * 100), method: paymentMethod }
+        : undefined;
+
+      const result = inquiryId
+        ? await convertInquiry({
+            inquiryId,
+            startDate,
+            endDate: effectiveEndDate,
+            guestCount,
+            customer,
+            customerNotes: notes.trim() || undefined,
+            initialPayment,
+          })
+        : await createByStaff({
+            listingId,
+            startDate,
+            endDate: effectiveEndDate,
+            guestCount,
+            customer,
+            customerNotes: notes.trim() || undefined,
+            initialPayment,
+          });
       navigate(`/admin/reservations/${result.bookingId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -113,10 +169,13 @@ export function NewReservationPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-2 text-xl font-semibold text-ink-900">New reservation</h1>
+      <h1 className="mb-2 text-xl font-semibold text-ink-900">
+        {isConverting ? "Convert inquiry to booking" : "New reservation"}
+      </h1>
       <p className="mb-6 text-sm text-ink-500">
-        Log a booking taken over the phone, Messenger, or in person. Availability and pricing follow the same rules
-        as the public site.
+        {isConverting
+          ? "Confirm the details below with the guest, then create the booking."
+          : "Log a booking taken over the phone, Messenger, or in person. Availability and pricing follow the same rules as the public site."}
       </p>
 
       <div className="mb-6 flex gap-2">
@@ -124,8 +183,9 @@ export function NewReservationPage() {
           <button
             key={tab.value}
             type="button"
+            disabled={isConverting}
             onClick={() => handleTypeChange(tab.value)}
-            className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium ${
+            className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60 ${
               type === tab.value ? "border-ink-900 bg-ink-900 text-white" : "border-ink-200 text-ink-600 hover:bg-ink-50"
             }`}
           >
@@ -139,6 +199,7 @@ export function NewReservationPage() {
           label="Listing"
           value={listingId}
           onChange={(e) => setListingId(e.target.value as Id<"listings">)}
+          disabled={isConverting}
           required
         >
           <option value="">{listings === undefined ? "Loading…" : "Select a listing"}</option>
@@ -148,6 +209,9 @@ export function NewReservationPage() {
               {isTour ? " / person" : type === "vehicle" ? " / day" : " / night"}
             </option>
           ))}
+          {isConverting && inquiry?.listing && !listings?.some((l) => l._id === inquiry.listingId) && (
+            <option value={inquiry.listingId}>{inquiry.listing.title}</option>
+          )}
         </Select>
 
         {isTour ? (
@@ -197,13 +261,9 @@ export function NewReservationPage() {
         )}
 
         <div className="mt-2 border-t border-ink-100 pt-4">
-          <h2 className="mb-3 text-sm font-semibold text-ink-800">Guest details</h2>
+          <h2 className="mb-3 text-sm font-semibold text-ink-800">Customer details</h2>
           <div className="flex flex-col gap-4">
-            <Input label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              <Input label="Phone number" value={phone} onChange={(e) => setPhone(e.target.value)} required />
-            </div>
+            <CustomerPicker value={customer} onChange={setCustomer} />
             <Textarea
               label="Notes (optional)"
               value={notes}
@@ -216,7 +276,7 @@ export function NewReservationPage() {
         <div className="border-t border-ink-100 pt-4">
           <label className="flex items-center gap-2 text-sm font-medium text-ink-800">
             <input type="checkbox" checked={markPaid} onChange={(e) => setMarkPaid(e.target.checked)} />
-            Guest has already paid — confirm this reservation now
+            Record a payment now (optional — partial is fine)
           </label>
           {markPaid && (
             <div className="mt-3 grid grid-cols-2 gap-4">
@@ -236,16 +296,22 @@ export function NewReservationPage() {
               />
             </div>
           )}
+          {markPaid && (
+            <p className="mt-2 text-xs text-ink-500">
+              Paying less than the total leaves the reservation "Pending payment" — the rest can be recorded later from
+              the reservation detail page.
+            </p>
+          )}
           {!markPaid && (
             <p className="mt-2 text-xs text-ink-500">
-              Reservation will be created as "Pending payment" — you can verify payment later from the Payments page.
+              Reservation will be created as "Pending payment" — you can record payment later from the reservation detail page.
             </p>
           )}
         </div>
 
         {error && <ErrorBanner message={error} />}
         <Button type="submit" size="lg" isLoading={submitting}>
-          Create reservation
+          {isConverting ? "Convert to booking" : "Create reservation"}
         </Button>
       </form>
     </div>

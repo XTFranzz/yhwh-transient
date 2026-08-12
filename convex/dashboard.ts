@@ -1,12 +1,12 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
-import { requireRole } from "./lib/auth";
+import { requireRole, ANY_STAFF } from "./lib/auth";
 import { daysBetween, nightsBetween, todayDateString } from "./lib/dateRanges";
 
 export const summary = query({
   args: { from: v.optional(v.string()), to: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin", "front_desk", "housekeeping"]);
+    await requireRole(ctx, ANY_STAFF);
 
     const today = todayDateString();
     const from = args.from ?? `${today.slice(0, 8)}01`; // first of current month

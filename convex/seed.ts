@@ -6,7 +6,7 @@ import { nightsBetween, todayDateString } from "./lib/dateRanges";
 // Idempotent demo data for local development. Run via:
 //   npx convex run seed:seedDemoData
 // Staff logins are NOT created here (Convex Auth hashes passwords inside its
-// own action) — see bootstrap.ts for the first owner_admin account.
+// own action) — see bootstrap.ts for the first superadmin account.
 export const seedDemoData = internalMutation({
   args: {},
   handler: async (ctx) => {
@@ -93,12 +93,12 @@ export const seedDemoData = internalMutation({
       listingIds.push(listingId);
     }
 
-    const guestId = await ctx.db.insert("guests", {
+    const customerId = await ctx.db.insert("customers", {
       fullName: "Juan Dela Cruz",
       email: "juan@example.com",
       phone: "09171234567",
     });
-    const guest2Id = await ctx.db.insert("guests", {
+    const customer2Id = await ctx.db.insert("customers", {
       fullName: "Maria Santos",
       email: "maria@example.com",
       phone: "09179876543",
@@ -110,7 +110,7 @@ export const seedDemoData = internalMutation({
     const booking1Id = await ctx.db.insert("bookings", {
       referenceNumber: "YHWH-DEMO01",
       listingId: listingIds[0],
-      guestId,
+      customerId,
       startDate: booking1Start,
       endDate: booking1End,
       guestCount: 3,
@@ -132,13 +132,13 @@ export const seedDemoData = internalMutation({
     const booking2Id = await ctx.db.insert("bookings", {
       referenceNumber: "YHWH-DEMO02",
       listingId: listingIds[1],
-      guestId: guest2Id,
+      customerId: customer2Id,
       startDate: booking2Start,
       endDate: booking2End,
       guestCount: 6,
       totalCentavos: houses[1].basePriceCentavos * nightsBetween(booking2Start, booking2End),
       status: "pending_payment",
-      guestNotes: "Celebrating a birthday, requesting late check-out if possible.",
+      customerNotes: "Celebrating a birthday, requesting late check-out if possible.",
       source: "public_site",
     });
     await ctx.db.insert("availabilityBlocks", {

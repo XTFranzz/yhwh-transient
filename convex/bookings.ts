@@ -3,10 +3,12 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { requireRole } from "./lib/auth";
+import { requireRole, ANY_STAFF } from "./lib/auth";
 import { generateUniqueReferenceNumber } from "./lib/referenceNumber";
 import { isValidDateString, nightsBetween, todayDateString } from "./lib/dateRanges";
 import { isListingAvailable } from "./lib/availabilityHelpers";
+import { findOrCreateCustomer, type CustomerInput } from "./lib/customers";
+import { getBookingBalance } from "./payments";
 
 const bookingStatuses = [
   "pending_payment",
@@ -17,7 +19,12 @@ const bookingStatuses = [
   "no_show",
 ] as const;
 
-const paymentMethods = ["gcash", "bank_transfer", "cash"] as const;
+export const paymentMethods = ["gcash", "bank_transfer", "cash"] as const;
+export const initialPaymentValidator = v.object({
+  amountCentavos: v.number(),
+  method: v.union(...paymentMethods.map((m) => v.literal(m))),
+});
+type InitialPayment = { amountCentavos: number; method: (typeof paymentMethods)[number] };
 
 // Legal forward transitions per current status. Cancellation/no-show are only
 // reachable from states that haven't already reached a terminal outcome.
@@ -30,19 +37,19 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   no_show: [],
 };
 
-interface CreateBookingArgs {
+export interface CreateBookingArgs {
   listingId: Id<"listings">;
   startDate: string;
   endDate: string;
   guestCount: number;
-  guest: { fullName: string; email: string; phone: string };
-  guestNotes?: string;
-  source: "public_site" | "admin_manual";
+  customer: CustomerInput;
+  customerNotes?: string;
 }
 
-// Shared by the public booking flow and admin manual-entry — one place for
-// availability/pricing rules so both paths can never drift apart.
-async function createBookingCore(ctx: MutationCtx, args: CreateBookingArgs) {
+// All bookings are staff-entered now (direct manual entry or converting an
+// inquiry) — this is the one place availability/pricing rules live, shared
+// by bookings.createByStaff and inquiries.convertToBooking.
+export async function createBookingCore(ctx: MutationCtx, args: CreateBookingArgs) {
   if (!isValidDateString(args.startDate) || !isValidDateString(args.endDate)) {
     throw new Error("Dates must be in YYYY-MM-DD format");
   }
@@ -71,13 +78,7 @@ async function createBookingCore(ctx: MutationCtx, args: CreateBookingArgs) {
   const available = await isListingAvailable(ctx, args.listingId, args.startDate, args.endDate);
   if (!available) throw new Error("Selected dates are no longer available");
 
-  const guest = await ctx.db
-    .query("guests")
-    .withIndex("by_email_phone", (q) => q.eq("email", args.guest.email).eq("phone", args.guest.phone))
-    .unique();
-  const guestId = guest
-    ? (await ctx.db.patch(guest._id, { fullName: args.guest.fullName }), guest._id)
-    : await ctx.db.insert("guests", args.guest);
+  const { customerId } = await findOrCreateCustomer(ctx, args.customer);
 
   const referenceNumber = await generateUniqueReferenceNumber(ctx);
   // Houses/vehicles are priced per night/day of the stay; tours are priced per head for a single day.
@@ -88,14 +89,14 @@ async function createBookingCore(ctx: MutationCtx, args: CreateBookingArgs) {
   const bookingId = await ctx.db.insert("bookings", {
     referenceNumber,
     listingId: args.listingId,
-    guestId,
+    customerId,
     startDate: args.startDate,
     endDate: args.endDate,
     guestCount: args.guestCount,
     totalCentavos,
     status: "pending_payment",
-    guestNotes: args.guestNotes,
-    source: args.source,
+    customerNotes: args.customerNotes,
+    source: "admin_manual",
   });
   await ctx.db.insert("availabilityBlocks", {
     listingId: args.listingId,
@@ -108,39 +109,51 @@ async function createBookingCore(ctx: MutationCtx, args: CreateBookingArgs) {
   return { bookingId, referenceNumber, totalCentavos };
 }
 
-export const create = mutation({
-  args: {
-    listingId: v.id("listings"),
-    startDate: v.string(),
-    endDate: v.string(),
-    guestCount: v.number(),
-    guest: v.object({ fullName: v.string(), email: v.string(), phone: v.string() }),
-    guestNotes: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => createBookingCore(ctx, { ...args, source: "public_site" }),
-});
+// Records payment collected up front — shared by createByStaff and
+// inquiries.convertToBooking. Only confirms the booking once its balance
+// reaches zero; a partial amount leaves it in pending_payment. Same
+// over/under-payment rules as payments.recordByStaff (see there for why cash
+// is allowed to overshoot but gcash/bank_transfer isn't).
+export async function applyInitialPayment(
+  ctx: MutationCtx,
+  bookingId: Id<"bookings">,
+  totalCentavos: number,
+  payment: InitialPayment,
+  userId: Id<"users">,
+) {
+  const { balanceCentavos } = await getBookingBalance(ctx, bookingId, totalCentavos);
+  if (payment.amountCentavos > balanceCentavos && payment.method !== "cash") {
+    throw new Error(`Amount exceeds remaining balance of ₱${(balanceCentavos / 100).toFixed(2)}`);
+  }
 
-// Staff-entered reservation (walk-in, phone call, Messenger) — same
-// availability/pricing rules as the public flow, via createBookingCore.
-// Optionally records payment already collected in person and confirms
-// immediately, instead of leaving the booking in pending_payment.
+  await ctx.db.insert("payments", {
+    bookingId,
+    amountCentavos: payment.amountCentavos,
+    method: payment.method,
+    status: "verified",
+    reviewedBy: userId,
+    reviewedAt: Date.now(),
+  });
+
+  if (payment.amountCentavos >= balanceCentavos) {
+    await ctx.db.patch(bookingId, { status: "confirmed" });
+  }
+}
+
+// Staff-entered reservation (walk-in, phone call, Messenger) — the public
+// site no longer creates bookings directly, only inquiries (see inquiries.ts).
 export const createByStaff = mutation({
   args: {
     listingId: v.id("listings"),
     startDate: v.string(),
     endDate: v.string(),
     guestCount: v.number(),
-    guest: v.object({ fullName: v.string(), email: v.string(), phone: v.string() }),
-    guestNotes: v.optional(v.string()),
-    initialPayment: v.optional(
-      v.object({
-        amountCentavos: v.number(),
-        method: v.union(...paymentMethods.map((m) => v.literal(m))),
-      }),
-    ),
+    customer: v.object({ fullName: v.string(), email: v.string(), phone: v.string() }),
+    customerNotes: v.optional(v.string()),
+    initialPayment: v.optional(initialPaymentValidator),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin", "front_desk"]);
+    await requireRole(ctx, ANY_STAFF);
     const userId = (await getAuthUserId(ctx))!;
 
     const result = await createBookingCore(ctx, {
@@ -148,21 +161,12 @@ export const createByStaff = mutation({
       startDate: args.startDate,
       endDate: args.endDate,
       guestCount: args.guestCount,
-      guest: args.guest,
-      guestNotes: args.guestNotes,
-      source: "admin_manual",
+      customer: args.customer,
+      customerNotes: args.customerNotes,
     });
 
     if (args.initialPayment) {
-      await ctx.db.insert("payments", {
-        bookingId: result.bookingId,
-        amountCentavos: args.initialPayment.amountCentavos,
-        method: args.initialPayment.method,
-        status: "verified",
-        reviewedBy: userId,
-        reviewedAt: Date.now(),
-      });
-      await ctx.db.patch(result.bookingId, { status: "confirmed" });
+      await applyInitialPayment(ctx, result.bookingId, result.totalCentavos, args.initialPayment, userId);
     }
 
     return result;
@@ -178,8 +182,8 @@ export const lookupByReferenceAndEmail = query({
       .unique();
     if (!booking) return null;
 
-    const guest = await ctx.db.get(booking.guestId);
-    if (!guest || guest.email.toLowerCase() !== args.email.trim().toLowerCase()) return null;
+    const customer = await ctx.db.get(booking.customerId);
+    if (!customer || customer.email.toLowerCase() !== args.email.trim().toLowerCase()) return null;
 
     const listing = await ctx.db.get(booking.listingId);
     const payments = await ctx.db
@@ -187,7 +191,7 @@ export const lookupByReferenceAndEmail = query({
       .withIndex("by_bookingId", (q) => q.eq("bookingId", booking._id))
       .collect();
 
-    return { booking, guest, listing, payments };
+    return { booking, customer, listing, payments };
   },
 });
 
@@ -197,7 +201,7 @@ export const listForAdmin = query({
     listingId: v.optional(v.id("listings")),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin", "front_desk", "housekeeping"]);
+    await requireRole(ctx, ANY_STAFF);
 
     let bookings;
     if (args.listingId) {
@@ -223,7 +227,7 @@ export const listForAdmin = query({
     return Promise.all(
       bookings.map(async (booking) => ({
         ...booking,
-        guest: await ctx.db.get(booking.guestId),
+        customer: await ctx.db.get(booking.customerId),
         listing: await ctx.db.get(booking.listingId),
       })),
     );
@@ -233,10 +237,10 @@ export const listForAdmin = query({
 export const getDetail = query({
   args: { bookingId: v.id("bookings") },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin", "front_desk", "housekeeping"]);
+    await requireRole(ctx, ANY_STAFF);
     const booking = await ctx.db.get(args.bookingId);
     if (!booking) return null;
-    const guest = await ctx.db.get(booking.guestId);
+    const customer = await ctx.db.get(booking.customerId);
     const listing = await ctx.db.get(booking.listingId);
     const payments = await Promise.all(
       (
@@ -249,14 +253,15 @@ export const getDetail = query({
         receiptUrl: p.receiptStorageId ? await ctx.storage.getUrl(p.receiptStorageId) : null,
       })),
     );
-    return { booking, guest, listing, payments };
+    const { paidCentavos, balanceCentavos } = await getBookingBalance(ctx, booking._id, booking.totalCentavos);
+    return { booking, customer, listing, payments, paidCentavos, balanceCentavos };
   },
 });
 
 export const updateStatus = mutation({
   args: { bookingId: v.id("bookings"), newStatus: v.union(...bookingStatuses.map((s) => v.literal(s))) },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin", "front_desk"]);
+    await requireRole(ctx, ANY_STAFF);
     const booking = await ctx.db.get(args.bookingId);
     if (!booking) throw new Error("Booking not found");
 

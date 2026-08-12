@@ -4,17 +4,18 @@
 @theme {
   --font-sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
 
-  /* Brand: muted brass/gold accent, used sparingly against a white/gray/black canvas. */
-  --color-brand-50: #fbf8f2;
-  --color-brand-100: #f5eddd;
-  --color-brand-200: #e9d9b0;
-  --color-brand-300: #dcc17e;
-  --color-brand-400: #cda657;
-  --color-brand-500: #b98d3e;
-  --color-brand-600: #99732f;
-  --color-brand-700: #7a5b26;
-  --color-brand-800: #614920;
-  --color-brand-900: #4e3b1b;
+  /* Brand palette lifted from the YHWH Transient crest mark: navy linework
+     + a dusty rose/mauve ring accent, on white. */
+  --color-brand-50: #faf4f3;
+  --color-brand-100: #f2e1df;
+  --color-brand-200: #e2c0bc;
+  --color-brand-300: #cd9c97;
+  --color-brand-400: #b37f79;
+  --color-brand-500: #9b6762;
+  --color-brand-600: #82524e;
+  --color-brand-700: #684440;
+  --color-brand-800: #533735;
+  --color-brand-900: #432d2b;
 
   --color-teal-50: #effcfa;
   --color-teal-100: #d7f5f0;
@@ -27,20 +28,21 @@
   --color-teal-800: #14524d;
   --color-teal-900: #124440;
 
-  --color-ink-50: #f7f7f8;
-  --color-ink-100: #eeeef0;
-  --color-ink-200: #d9d9de;
-  --color-ink-300: #b6b6c0;
-  --color-ink-400: #8c8c9a;
-  --color-ink-500: #6b6b7a;
-  --color-ink-600: #545462;
-  --color-ink-700: #434350;
-  --color-ink-800: #2c2c36;
-  --color-ink-900: #17171d;
+  /* "ink" is tinted navy (not neutral gray) to match the crest's linework. */
+  --color-ink-50: #f5f6f8;
+  --color-ink-100: #e9ebef;
+  --color-ink-200: #d2d6de;
+  --color-ink-300: #adb4c0;
+  --color-ink-400: #7c859a;
+  --color-ink-500: #5c6478;
+  --color-ink-600: #454c5e;
+  --color-ink-700: #363c4a;
+  --color-ink-800: #2b3648;
+  --color-ink-900: #1d2530;
 
-  --shadow-card: 0 2px 8px rgba(23, 23, 29, 0.06), 0 1px 2px rgba(23, 23, 29, 0.08);
-  --shadow-card-hover: 0 12px 28px rgba(23, 23, 29, 0.12), 0 4px 10px rgba(23, 23, 29, 0.08);
-  --shadow-popover: 0 16px 40px rgba(23, 23, 29, 0.18);
+  --shadow-card: 0 2px 8px rgba(29, 37, 48, 0.07), 0 1px 2px rgba(29, 37, 48, 0.08);
+  --shadow-card-hover: 0 12px 28px rgba(29, 37, 48, 0.13), 0 4px 10px rgba(29, 37, 48, 0.08);
+  --shadow-popover: 0 16px 40px rgba(29, 37, 48, 0.2);
 
   --animate-fade-in: fade-in 0.2s ease-out;
   --animate-slide-up: slide-up 0.25s ease-out;

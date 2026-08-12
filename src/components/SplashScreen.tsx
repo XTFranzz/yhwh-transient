@@ -36,6 +36,13 @@ const NEXT_PHASE: Record<Phase, Phase> = {
 export function SplashScreen() {
   const [phase, setPhase] = useState<Phase>("start");
 
+  // The component stays mounted after finishing (it just renders null), so
+  // the effect below never unmounts and its cleanup never runs — reset the
+  // scroll lock directly when the phase reaches "done" instead.
+  useEffect(() => {
+    if (phase === "done") document.body.style.overflow = "";
+  }, [phase]);
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

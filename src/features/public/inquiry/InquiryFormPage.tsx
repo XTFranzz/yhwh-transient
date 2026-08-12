@@ -3,24 +3,25 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { formatDate, formatMoney } from "../../../lib/format";
-import { useBookingDraftStore } from "../../../lib/store";
+import { useInquiryDraftStore } from "../../../lib/store";
 import { Button } from "../../../components/ui/Button";
 import { Input, Textarea } from "../../../components/ui/Input";
 import { PageSpinner, ErrorBanner } from "../../../components/ui/Feedback";
 
-export function BookingReviewPage() {
+export function InquiryFormPage() {
   const { slug = "" } = useParams();
   const navigate = useNavigate();
   const listing = useQuery(api.listings.getBySlug, { slug });
-  const createBooking = useMutation(api.bookings.create);
-  const draft = useBookingDraftStore((s) => s.draft);
-  const setGuestInfo = useBookingDraftStore((s) => s.setGuestInfo);
-  const setGuestNotes = useBookingDraftStore((s) => s.setGuestNotes);
+  const createInquiry = useMutation(api.inquiries.create);
+  const draft = useInquiryDraftStore((s) => s.draft);
+  const setCustomerInfo = useInquiryDraftStore((s) => s.setCustomerInfo);
+  const setNotes = useInquiryDraftStore((s) => s.setNotes);
+  const resetDraft = useInquiryDraftStore((s) => s.reset);
 
-  const [fullName, setFullName] = useState(draft.guest.fullName);
-  const [email, setEmail] = useState(draft.guest.email);
-  const [phone, setPhone] = useState(draft.guest.phone);
-  const [notes, setNotes] = useState(draft.guestNotes);
+  const [fullName, setFullName] = useState(draft.customer.fullName);
+  const [email, setEmail] = useState(draft.customer.email);
+  const [phone, setPhone] = useState(draft.customer.phone);
+  const [notes, setLocalNotes] = useState(draft.notes);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +37,7 @@ export function BookingReviewPage() {
       : "/";
     return (
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
-        <p className="text-ink-700">We couldn't find your booking details. Please start again from the listing page.</p>
+        <p className="text-ink-700">We couldn't find your inquiry details. Please start again from the listing page.</p>
         <Link to={backTo} className="mt-4 inline-block text-brand-600 underline">
           Back to listing
         </Link>
@@ -46,7 +47,7 @@ export function BookingReviewPage() {
 
   const isTour = listing.type === "tour";
   const units = Math.round((new Date(draft.checkOut).getTime() - new Date(draft.checkIn).getTime()) / 86400000);
-  const totalCentavos = isTour ? draft.guestCount * listing.basePriceCentavos : units * listing.basePriceCentavos;
+  const estimatedTotal = isTour ? draft.guestCount * listing.basePriceCentavos : units * listing.basePriceCentavos;
   const unitLabel = listing.type === "house" ? "night" : listing.type === "vehicle" ? "day" : "guest";
   const unitCount = isTour ? draft.guestCount : units;
 
@@ -59,19 +60,19 @@ export function BookingReviewPage() {
     }
     setSubmitting(true);
     try {
-      setGuestInfo({ fullName, email, phone });
-      setGuestNotes(notes);
-      const result = await createBooking({
+      setCustomerInfo({ fullName, email, phone });
+      setNotes(notes);
+      await createInquiry({
         listingId: listing!._id,
         startDate: draft.checkIn!,
         endDate: draft.checkOut!,
         guestCount: draft.guestCount,
-        guest: { fullName: fullName.trim(), email: email.trim(), phone: phone.trim() },
-        guestNotes: notes.trim() || undefined,
+        customer: { fullName: fullName.trim(), email: email.trim(), phone: phone.trim() },
+        notes: notes.trim() || undefined,
       });
-      navigate(`/book/${result.referenceNumber}/payment`, {
-        state: { bookingId: result.bookingId, referenceNumber: result.referenceNumber, totalCentavos: result.totalCentavos },
-      });
+      const listingTitle = listing!.title;
+      resetDraft();
+      navigate("/inquiry-sent", { state: { listingTitle } });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -81,7 +82,10 @@ export function BookingReviewPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="text-2xl font-semibold text-ink-900">Confirm and pay</h1>
+      <h1 className="text-2xl font-semibold text-ink-900">Send an inquiry</h1>
+      <p className="mt-1 text-sm text-ink-500">
+        No payment needed yet — tell us a bit about you and we'll reach out to confirm availability.
+      </p>
 
       <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -90,14 +94,14 @@ export function BookingReviewPage() {
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <Input label="Phone number" value={phone} onChange={(e) => setPhone(e.target.value)} required />
           <Textarea
-            label="Special requests (optional)"
+            label="Anything else we should know? (optional)"
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Late check-out, extra pillows, etc."
+            onChange={(e) => setLocalNotes(e.target.value)}
+            placeholder="Special requests, questions, preferred contact time, etc."
           />
           {error && <ErrorBanner message={error} />}
           <Button type="submit" size="lg" isLoading={submitting}>
-            Continue to payment
+            Send inquiry
           </Button>
         </form>
 
@@ -123,12 +127,13 @@ export function BookingReviewPage() {
                 {formatMoney(listing.basePriceCentavos)} × {unitCount} {unitLabel}
                 {unitCount > 1 ? "s" : ""}
               </span>
-              <span>{formatMoney(totalCentavos)}</span>
+              <span>{formatMoney(estimatedTotal)}</span>
             </div>
             <div className="mt-2 flex justify-between text-base font-semibold text-ink-900">
-              <span>Total</span>
-              <span>{formatMoney(totalCentavos)}</span>
+              <span>Estimated total</span>
+              <span>{formatMoney(estimatedTotal)}</span>
             </div>
+            <p className="mt-2 text-xs text-ink-400">Final pricing and availability will be confirmed by our team.</p>
           </div>
         </div>
       </div>

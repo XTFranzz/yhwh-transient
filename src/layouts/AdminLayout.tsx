@@ -4,14 +4,19 @@ import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../convex/_generated/api";
 import { Icon } from "../components/ui/Icon";
+import { LogoMark } from "../components/ui/Logo";
+
+const ANY_STAFF = ["staff", "admin", "superadmin"];
+const ADMIN_UP = ["admin", "superadmin"];
 
 const NAV_ITEMS = [
-  { to: "/admin", label: "Dashboard", icon: "speedometer2", end: true, roles: ["owner_admin", "front_desk", "housekeeping"] },
-  { to: "/admin/reservations", label: "Reservations", icon: "calendar-check", roles: ["owner_admin", "front_desk", "housekeeping"] },
-  { to: "/admin/listings", label: "Listings", icon: "house-door", roles: ["owner_admin", "front_desk"] },
-  { to: "/admin/payments", label: "Payments", icon: "credit-card", roles: ["owner_admin", "front_desk"] },
-  { to: "/admin/customers", label: "Customers", icon: "people", roles: ["owner_admin", "front_desk"] },
-  { to: "/admin/staff", label: "Staff", icon: "person-badge", roles: ["owner_admin"] },
+  { to: "/admin", label: "Dashboard", icon: "speedometer2", end: true, roles: ANY_STAFF },
+  { to: "/admin/reservations", label: "Reservations", icon: "calendar-check", roles: ANY_STAFF },
+  { to: "/admin/inquiries", label: "Inquiries", icon: "chat-dots", roles: ANY_STAFF },
+  { to: "/admin/listings", label: "Listings", icon: "house-door", roles: ADMIN_UP },
+  { to: "/admin/payments", label: "Payments", icon: "credit-card", roles: ANY_STAFF },
+  { to: "/admin/customers", label: "Customers", icon: "people", roles: ANY_STAFF },
+  { to: "/admin/staff", label: "Staff", icon: "person-badge", roles: ["superadmin"] },
 ];
 
 function SidebarNav({ items, onNavigate }: { items: typeof NAV_ITEMS; onNavigate?: () => void }) {
@@ -43,14 +48,14 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const role = profile?.role ?? "front_desk";
+  const role = profile?.role ?? "staff";
   const visibleItems = NAV_ITEMS.filter((item) => item.roles.includes(role));
 
   return (
     <div className="flex min-h-svh bg-ink-50">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-ink-100 bg-white px-4 py-6 md:flex">
-        <div className="mb-8 flex items-center gap-2 px-2 text-lg font-semibold text-ink-900">
-          <Icon name="building" className="text-brand-500" />
+        <div className="mb-8 flex items-center gap-2.5 px-2 text-lg font-semibold text-ink-900">
+          <LogoMark size={28} />
           YHWH Admin
         </div>
         <SidebarNav items={visibleItems} />
@@ -64,8 +69,8 @@ export function AdminLayout() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-8 flex items-center justify-between px-2">
-              <span className="flex items-center gap-2 text-lg font-semibold text-ink-900">
-                <Icon name="building" className="text-brand-500" />
+              <span className="flex items-center gap-2.5 text-lg font-semibold text-ink-900">
+                <LogoMark size={28} />
                 YHWH Admin
               </span>
               <button onClick={() => setMobileNavOpen(false)} className="rounded-full p-1 text-ink-400 hover:bg-ink-100" aria-label="Close menu">

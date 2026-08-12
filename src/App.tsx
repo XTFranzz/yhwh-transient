@@ -11,9 +11,8 @@ import { VehiclesPage } from "./features/public/vehicles/VehiclesPage";
 import { VehicleDetailPage } from "./features/public/vehicles/VehicleDetailPage";
 import { ToursPage } from "./features/public/tours/ToursPage";
 import { TourDetailPage } from "./features/public/tours/TourDetailPage";
-import { BookingReviewPage } from "./features/public/booking/BookingReviewPage";
-import { BookingPaymentPage } from "./features/public/booking/BookingPaymentPage";
-import { BookingConfirmationPage } from "./features/public/booking/BookingConfirmationPage";
+import { InquiryFormPage } from "./features/public/inquiry/InquiryFormPage";
+import { InquirySentPage } from "./features/public/inquiry/InquirySentPage";
 import { BookingLookupPage } from "./features/public/lookup/BookingLookupPage";
 import { ContactPage } from "./features/public/info/ContactPage";
 import { FaqPage } from "./features/public/info/FaqPage";
@@ -25,8 +24,10 @@ import { ListingFormPage } from "./features/admin/listings/ListingFormPage";
 import { ReservationsListPage } from "./features/admin/reservations/ReservationsListPage";
 import { ReservationDetailPage } from "./features/admin/reservations/ReservationDetailPage";
 import { NewReservationPage } from "./features/admin/reservations/NewReservationPage";
-import { PaymentsQueuePage } from "./features/admin/payments/PaymentsQueuePage";
+import { InquiriesListPage } from "./features/admin/inquiries/InquiriesListPage";
+import { PaymentsAnalyticsPage } from "./features/admin/payments/PaymentsAnalyticsPage";
 import { CustomersListPage } from "./features/admin/customers/CustomersListPage";
+import { CustomerDetailPage } from "./features/admin/customers/CustomerDetailPage";
 import { StaffListPage } from "./features/admin/staff/StaffListPage";
 
 export default function App() {
@@ -42,9 +43,8 @@ export default function App() {
           <Route path="/vehicles/:slug" element={<VehicleDetailPage />} />
           <Route path="/tours" element={<ToursPage />} />
           <Route path="/tours/:slug" element={<TourDetailPage />} />
-          <Route path="/book/:slug/review" element={<BookingReviewPage />} />
-          <Route path="/book/:reference/payment" element={<BookingPaymentPage />} />
-          <Route path="/book/:reference/confirmation" element={<BookingConfirmationPage />} />
+          <Route path="/inquire/:slug" element={<InquiryFormPage />} />
+          <Route path="/inquiry-sent" element={<InquirySentPage />} />
           <Route path="/my-booking" element={<BookingLookupPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/faqs" element={<FaqPage />} />
@@ -63,15 +63,17 @@ export default function App() {
           <Route path="reservations" element={<ReservationsListPage />} />
           <Route path="reservations/new" element={<NewReservationPage />} />
           <Route path="reservations/:bookingId" element={<ReservationDetailPage />} />
+          <Route path="inquiries" element={<InquiriesListPage />} />
           <Route path="listings" element={<ListingsListPage />} />
           <Route path="listings/new" element={<ListingFormPage />} />
           <Route path="listings/:listingId/edit" element={<ListingFormPage />} />
-          <Route path="payments" element={<PaymentsQueuePage />} />
+          <Route path="payments" element={<PaymentsAnalyticsPage />} />
           <Route path="customers" element={<CustomersListPage />} />
+          <Route path="customers/:customerId" element={<CustomerDetailPage />} />
           <Route
             path="staff"
             element={
-              <AdminGuard roles={["owner_admin"]}>
+              <AdminGuard roles={["superadmin"]}>
                 <StaffListPage />
               </AdminGuard>
             }

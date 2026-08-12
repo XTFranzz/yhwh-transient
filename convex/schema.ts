@@ -7,15 +7,13 @@ export default defineSchema({
   ...authTables,
 
   // Staff accounts, linked 1:1 to the auth `users` table. No self-registration —
-  // owner_admin provisions every account via staff.createStaffAccount.
+  // only a superadmin provisions accounts, via staff.createStaffAccount.
+  // Tiers: staff (day-to-day: reservations, inquiries, payments), admin (staff
+  // + listings management), superadmin (admin + staff account management).
   staffProfiles: defineTable({
     userId: v.id("users"),
     displayName: v.string(),
-    role: v.union(
-      v.literal("owner_admin"),
-      v.literal("front_desk"),
-      v.literal("housekeeping"),
-    ),
+    role: v.union(v.literal("staff"), v.literal("admin"), v.literal("superadmin")),
     isActive: v.boolean(),
   })
     .index("by_userId", ["userId"])
@@ -91,8 +89,9 @@ export default defineSchema({
     .index("by_listingId", ["listingId"])
     .index("by_bookingId", ["bookingId"]),
 
-  // No guest accounts — a guest row is upserted by (email, phone) on each booking.
-  guests: defineTable({
+  // No customer accounts — a customer row is upserted by (email, phone) on
+  // each booking/inquiry.
+  customers: defineTable({
     fullName: v.string(),
     email: v.string(),
     phone: v.string(),
@@ -103,7 +102,7 @@ export default defineSchema({
   bookings: defineTable({
     referenceNumber: v.string(), // e.g. "YHWH-8F3K2Q"
     listingId: v.id("listings"),
-    guestId: v.id("guests"),
+    customerId: v.id("customers"),
     startDate: v.string(),
     endDate: v.string(),
     guestCount: v.number(),
@@ -116,18 +115,41 @@ export default defineSchema({
       v.literal("cancelled"),
       v.literal("no_show"),
     ),
-    guestNotes: v.optional(v.string()),
-    // Distinguishes guest self-service bookings from ones staff entered on a
-    // guest's behalf (walk-in, phone, Messenger). Optional so pre-existing
-    // dev data (created before this field existed) still validates.
+    customerNotes: v.optional(v.string()),
+    // All bookings are now staff-entered ("admin_manual") — direct or via
+    // inquiry conversion. "public_site" only appears on historical rows from
+    // before self-service booking was replaced by the inquiry flow.
     source: v.optional(v.union(v.literal("public_site"), v.literal("admin_manual"))),
   })
     .index("by_referenceNumber", ["referenceNumber"])
-    .index("by_guestId", ["guestId"])
+    .index("by_customerId", ["customerId"])
     .index("by_listingId_status", ["listingId", "status"])
     .index("by_status", ["status"])
     .index("by_startDate", ["startDate"])
     .index("by_endDate", ["endDate"]),
+
+  // A customer's request to book, submitted from the public site with no
+  // payment and no availability commitment (purely informational — staff
+  // resolve date conflicts manually when converting one to a real booking).
+  inquiries: defineTable({
+    listingId: v.id("listings"),
+    customerId: v.id("customers"),
+    startDate: v.string(),
+    endDate: v.string(),
+    guestCount: v.number(),
+    notes: v.optional(v.string()),
+    status: v.union(
+      v.literal("new"),
+      v.literal("contacted"),
+      v.literal("converted"),
+      v.literal("declined"),
+    ),
+    convertedBookingId: v.optional(v.id("bookings")),
+    respondedBy: v.optional(v.id("users")),
+    respondedAt: v.optional(v.number()),
+  })
+    .index("by_status", ["status"])
+    .index("by_listingId", ["listingId"]),
 
   payments: defineTable({
     bookingId: v.id("bookings"),

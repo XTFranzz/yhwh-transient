@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { formatMoney } from "../../../lib/format";
-import { useBookingDraftStore } from "../../../lib/store";
+import { useInquiryDraftStore } from "../../../lib/store";
 import { Button } from "../../../components/ui/Button";
 import { PageSpinner, ErrorBanner } from "../../../components/ui/Feedback";
 import { AvailabilityCalendar } from "../listings/components/AvailabilityCalendar";
@@ -31,9 +31,9 @@ export function TourDetailPage() {
     api.availability.getBlockedRanges,
     listing ? { listingId: listing._id } : "skip",
   );
-  const setListingSlug = useBookingDraftStore((s) => s.setListing);
-  const setDates = useBookingDraftStore((s) => s.setDates);
-  const setGuestCount = useBookingDraftStore((s) => s.setGuestCount);
+  const setListingSlug = useInquiryDraftStore((s) => s.setListing);
+  const setDates = useInquiryDraftStore((s) => s.setDates);
+  const setGuestCount = useInquiryDraftStore((s) => s.setGuestCount);
 
   const [tourDate, setTourDate] = useState("");
   const [pax, setPax] = useState(details?.minPax ?? 1);
@@ -68,7 +68,7 @@ export function TourDetailPage() {
     setListingSlug(slug);
     setDates(tourDate, addOneDay(tourDate));
     setGuestCount(pax);
-    navigate(`/book/${slug}/review`);
+    navigate(`/inquire/${slug}`);
   }
 
   return (
@@ -148,8 +148,9 @@ export function TourDetailPage() {
             {error && <ErrorBanner message={error} />}
 
             <Button onClick={handleReserve} size="lg" className="w-full">
-              Reserve
+              Send inquiry
             </Button>
+            <p className="text-center text-xs text-ink-400">No payment required — our team will confirm with you.</p>
 
             {pax > 0 && (
               <div className="flex flex-col gap-1 border-t border-ink-100 pt-3 text-sm text-ink-600">
@@ -160,7 +161,7 @@ export function TourDetailPage() {
                   <span>{formatMoney(totalCentavos)}</span>
                 </div>
                 <div className="flex justify-between font-semibold text-ink-900">
-                  <span>Total</span>
+                  <span>Estimated total</span>
                   <span>{formatMoney(totalCentavos)}</span>
                 </div>
               </div>

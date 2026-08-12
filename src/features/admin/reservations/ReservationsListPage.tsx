@@ -56,7 +56,7 @@ export function ReservationsListPage() {
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-ink-100 bg-ink-50 text-xs uppercase tracking-wide text-ink-500">
               <tr>
-                <th className="px-4 py-3">Guest</th>
+                <th className="px-4 py-3">Customer</th>
                 <th className="px-4 py-3">Listing</th>
                 <th className="px-4 py-3">Dates</th>
                 <th className="px-4 py-3">Total</th>
@@ -68,7 +68,7 @@ export function ReservationsListPage() {
                 <tr key={b._id} className="cursor-pointer hover:bg-ink-50">
                   <td className="px-4 py-3">
                     <Link to={`/admin/reservations/${b._id}`} className="block font-medium text-ink-900">
-                      {b.guest?.fullName ?? "—"}
+                      {b.customer?.fullName ?? "—"}
                     </Link>
                     <span className="text-xs text-ink-400">{b.referenceNumber}</span>
                   </td>

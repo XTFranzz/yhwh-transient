@@ -4,7 +4,7 @@ import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { PageSpinner } from "../components/ui/Feedback";
 
-type StaffRole = "owner_admin" | "front_desk" | "housekeeping";
+type StaffRole = "staff" | "admin" | "superadmin";
 
 export function AdminGuard({ roles, children }: { roles?: StaffRole[]; children: ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();

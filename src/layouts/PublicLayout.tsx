@@ -1,13 +1,14 @@
 import { Link, Outlet } from "react-router-dom";
 import { Icon } from "../components/ui/Icon";
+import { LogoMark } from "../components/ui/Logo";
 
 export function PublicLayout() {
   return (
     <div className="flex min-h-svh flex-col bg-white">
       <header className="sticky top-0 z-40 border-b border-ink-800 bg-ink-900">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-white">
-            <Icon name="building" className="text-brand-400" />
+          <Link to="/" className="flex items-center gap-2.5 text-lg font-semibold text-white">
+            <LogoMark tone="light" size={30} />
             YHWH Transient
           </Link>
           <nav className="flex items-center gap-5 text-sm font-medium text-ink-300">
@@ -44,8 +45,8 @@ export function PublicLayout() {
         <div className="mx-auto max-w-7xl px-4 py-10 text-sm text-ink-500 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:justify-between">
             <div>
-              <p className="flex items-center gap-2 font-semibold text-ink-900">
-                <Icon name="building" className="text-brand-500" />
+              <p className="flex items-center gap-2.5 font-semibold text-ink-900">
+                <LogoMark size={26} />
                 YHWH Transient
               </p>
               <p className="mt-1">Staycation houses in Town Proper.</p>

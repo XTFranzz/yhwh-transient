@@ -1,39 +1,73 @@
-import { useQuery } from "convex/react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { formatMoney } from "../../../lib/format";
-import { PageSpinner, EmptyState } from "../../../components/ui/Feedback";
+import { Button } from "../../../components/ui/Button";
+import { Input } from "../../../components/ui/Input";
+import { Modal } from "../../../components/ui/Modal";
+import { PageSpinner, EmptyState, ErrorBanner } from "../../../components/ui/Feedback";
 
 export function CustomersListPage() {
-  const bookings = useQuery(api.bookings.listForAdmin, {});
+  const customers = useQuery(api.customers.list, {});
+  const createCustomer = useMutation(api.customers.create);
 
-  if (bookings === undefined) return <PageSpinner />;
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const byGuest = new Map<
-    string,
-    { fullName: string; email: string; phone: string; bookingCount: number; lifetimeCentavos: number }
-  >();
-  for (const b of bookings) {
-    if (!b.guest) continue;
-    const key = b.guest._id;
-    const entry = byGuest.get(key) ?? {
-      fullName: b.guest.fullName,
-      email: b.guest.email,
-      phone: b.guest.phone,
-      bookingCount: 0,
-      lifetimeCentavos: 0,
-    };
-    entry.bookingCount += 1;
-    if (b.status !== "cancelled" && b.status !== "no_show") entry.lifetimeCentavos += b.totalCentavos;
-    byGuest.set(key, entry);
+  if (customers === undefined) return <PageSpinner />;
+
+  const term = search.trim().toLowerCase();
+  const visible = term
+    ? customers.filter(
+        (c) =>
+          c.fullName.toLowerCase().includes(term) ||
+          c.email.toLowerCase().includes(term) ||
+          c.phone.toLowerCase().includes(term),
+      )
+    : customers;
+  const sorted = [...visible].sort((a, b) => b.lifetimeCentavos - a.lifetimeCentavos);
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await createCustomer({ fullName: fullName.trim(), email: email.trim(), phone: phone.trim() });
+      setOpen(false);
+      setFullName("");
+      setEmail("");
+      setPhone("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create customer.");
+    } finally {
+      setSubmitting(false);
+    }
   }
-  const customers = Array.from(byGuest.values()).sort((a, b) => b.lifetimeCentavos - a.lifetimeCentavos);
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold text-ink-900">Customers</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-ink-900">Customers</h1>
+        <Button onClick={() => setOpen(true)}>+ New customer</Button>
+      </div>
 
-      {customers.length === 0 ? (
-        <EmptyState title="No customers yet" description="Guests appear here once they make a booking." />
+      <Input
+        placeholder="Search by name, email, or phone…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+
+      {sorted.length === 0 ? (
+        <EmptyState
+          title={term ? "No customers match your search" : "No customers yet"}
+          description={term ? undefined : "Add a walk-in customer, or one will appear here after their first booking."}
+        />
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-ink-100 bg-white">
           <table className="w-full min-w-[640px] text-left text-sm">
@@ -46,9 +80,13 @@ export function CustomersListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-100">
-              {customers.map((c) => (
-                <tr key={c.email + c.phone}>
-                  <td className="px-4 py-3 font-medium text-ink-900">{c.fullName}</td>
+              {sorted.map((c) => (
+                <tr key={c._id} className="cursor-pointer hover:bg-ink-50">
+                  <td className="px-4 py-3">
+                    <Link to={`/admin/customers/${c._id}`} className="block font-medium text-ink-900">
+                      {c.fullName}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-ink-500">
                     {c.email}
                     <br />
@@ -62,6 +100,23 @@ export function CustomersListPage() {
           </table>
         </div>
       )}
+
+      <Modal open={open} onClose={() => setOpen(false)} title="New customer">
+        <form onSubmit={handleCreate} className="flex flex-col gap-4">
+          <Input label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+          <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Input label="Phone number" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+          {error && <ErrorBanner message={error} />}
+          <div className="mt-2 flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" isLoading={submitting}>
+              Create customer
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

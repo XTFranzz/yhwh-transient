@@ -8,22 +8,25 @@ import { Modal } from "../../../components/ui/Modal";
 import { Badge } from "../../../components/ui/Badge";
 import { PageSpinner, ErrorBanner } from "../../../components/ui/Feedback";
 
-const ROLES = [
-  { value: "owner_admin", label: "Owner / Admin" },
-  { value: "front_desk", label: "Front desk" },
-  { value: "housekeeping", label: "Housekeeping" },
+type StaffRole = "staff" | "admin" | "superadmin";
+
+const ROLES: { value: StaffRole; label: string }[] = [
+  { value: "staff", label: "Staff" },
+  { value: "admin", label: "Admin" },
+  { value: "superadmin", label: "Superadmin" },
 ];
 
 export function StaffListPage() {
   const staff = useQuery(api.staff.listStaff);
   const createStaffAccount = useAction(api.staff.createStaffAccount);
+  const updateStaffRole = useMutation(api.staff.updateStaffRole);
   const setActive = useMutation(api.staff.setActive);
 
   const [open, setOpen] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("front_desk");
+  const [role, setRole] = useState<StaffRole>("staff");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,12 +37,12 @@ export function StaffListPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await createStaffAccount({ displayName, email, password, role: role as "owner_admin" | "front_desk" | "housekeeping" });
+      await createStaffAccount({ displayName, email, password, role });
       setOpen(false);
       setDisplayName("");
       setEmail("");
       setPassword("");
-      setRole("front_desk");
+      setRole("staff");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create staff account.");
     } finally {
@@ -53,6 +56,10 @@ export function StaffListPage() {
         <h1 className="text-xl font-semibold text-ink-900">Staff</h1>
         <Button onClick={() => setOpen(true)}>+ New staff account</Button>
       </div>
+      <p className="-mt-4 text-sm text-ink-500">
+        <strong>Staff</strong> handle reservations, inquiries, and payments. <strong>Admin</strong> also manages
+        listings. <strong>Superadmin</strong> also manages staff accounts.
+      </p>
 
       <div className="overflow-x-auto rounded-2xl border border-ink-100 bg-white">
         <table className="w-full min-w-[560px] text-left text-sm">
@@ -68,7 +75,21 @@ export function StaffListPage() {
             {staff.map((s) => (
               <tr key={s._id}>
                 <td className="px-4 py-3 font-medium text-ink-900">{s.displayName}</td>
-                <td className="px-4 py-3 capitalize text-ink-600">{s.role.replace("_", " ")}</td>
+                <td className="px-4 py-3">
+                  <select
+                    value={s.role}
+                    onChange={(e) =>
+                      void updateStaffRole({ staffProfileId: s._id as Id<"staffProfiles">, role: e.target.value as StaffRole })
+                    }
+                    className="rounded-lg border border-ink-200 bg-white px-2 py-1 text-sm capitalize text-ink-700"
+                  >
+                    {ROLES.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                </td>
                 <td className="px-4 py-3">
                   <Badge tone={s.isActive ? "success" : "neutral"}>{s.isActive ? "Active" : "Inactive"}</Badge>
                 </td>
@@ -91,7 +112,7 @@ export function StaffListPage() {
           <Input label="Full name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <Input label="Temporary password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
-          <Select label="Role" value={role} onChange={(e) => setRole(e.target.value)}>
+          <Select label="Role" value={role} onChange={(e) => setRole(e.target.value as StaffRole)}>
             {ROLES.map((r) => (
               <option key={r.value} value={r.value}>
                 {r.label}

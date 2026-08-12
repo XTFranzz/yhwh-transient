@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
-import { requireRole } from "./lib/auth";
+import { requireRole, ANY_STAFF, ADMIN_UP } from "./lib/auth";
 import { ensureUniqueSlug } from "./lib/slug";
 import { isListingAvailable } from "./lib/availabilityHelpers";
 
@@ -115,7 +115,7 @@ export const getBySlug = query({
 export const listAllForAdmin = query({
   args: { type: v.optional(listingType) },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin", "front_desk"]);
+    await requireRole(ctx, ANY_STAFF);
     const listings = args.type
       ? await ctx.db
           .query("listings")
@@ -133,7 +133,7 @@ export const listAllForAdmin = query({
 export const getForAdmin = query({
   args: { listingId: v.id("listings") },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin", "front_desk"]);
+    await requireRole(ctx, ANY_STAFF);
     const listing = await ctx.db.get(args.listingId);
     if (!listing) return null;
     const details = await detailsFor(ctx, listing);
@@ -160,7 +160,7 @@ export const create = mutation({
     tourDetails: v.optional(tourDetailsValidator),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin"]);
+    await requireRole(ctx, ADMIN_UP);
     const userId = (await getAuthUserId(ctx))!;
     const slug = await ensureUniqueSlug(ctx, args.title);
 
@@ -201,7 +201,7 @@ export const update = mutation({
     tourDetails: v.optional(tourDetailsValidator),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin"]);
+    await requireRole(ctx, ADMIN_UP);
     const listing = await ctx.db.get(args.listingId);
     if (!listing) throw new Error("Listing not found");
 
@@ -234,7 +234,7 @@ export const update = mutation({
 export const setStatus = mutation({
   args: { listingId: v.id("listings"), status: v.union(v.literal("draft"), v.literal("active"), v.literal("inactive")) },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin"]);
+    await requireRole(ctx, ADMIN_UP);
     await ctx.db.patch(args.listingId, { status: args.status });
   },
 });
@@ -242,7 +242,7 @@ export const setStatus = mutation({
 export const generatePhotoUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, ["owner_admin"]);
+    await requireRole(ctx, ADMIN_UP);
     return ctx.storage.generateUploadUrl();
   },
 });
@@ -250,7 +250,7 @@ export const generatePhotoUploadUrl = mutation({
 export const addPhoto = mutation({
   args: { listingId: v.id("listings"), storageId: v.id("_storage"), isCover: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin"]);
+    await requireRole(ctx, ADMIN_UP);
     const existingPhotos = await ctx.db
       .query("listingPhotos")
       .withIndex("by_listingId", (q) => q.eq("listingId", args.listingId))
@@ -270,7 +270,7 @@ export const addPhoto = mutation({
 export const reorderPhotos = mutation({
   args: { orderedPhotoIds: v.array(v.id("listingPhotos")) },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin"]);
+    await requireRole(ctx, ADMIN_UP);
     await Promise.all(args.orderedPhotoIds.map((id, index) => ctx.db.patch(id, { sortOrder: index })));
   },
 });
@@ -278,7 +278,7 @@ export const reorderPhotos = mutation({
 export const removePhoto = mutation({
   args: { photoId: v.id("listingPhotos") },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["owner_admin"]);
+    await requireRole(ctx, ADMIN_UP);
     const photo = await ctx.db.get(args.photoId);
     if (!photo) return;
     await ctx.storage.delete(photo.storageId);

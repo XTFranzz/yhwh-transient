@@ -22,8 +22,8 @@ export function ListingCard({
   placeholderIcon = "house-door",
 }: ListingCardProps) {
   return (
-    <Link to={to} className="group flex flex-col gap-3 rounded-2xl transition-transform duration-200 hover:-translate-y-1">
-      <div className="aspect-square w-full overflow-hidden rounded-2xl bg-ink-100">
+    <Link to={to} className="group flex flex-col gap-3 rounded-xl transition-transform duration-200 hover:-translate-y-1">
+      <div className="aspect-[4/3] w-full overflow-hidden rounded-xl border border-ink-100 bg-ink-50">
         {coverPhotoUrl ? (
           <img
             src={coverPhotoUrl}
