@@ -30,3 +30,27 @@ export function LogoMark({ size = 32, className = "", tone = "dark" }: LogoMarkP
     </svg>
   );
 }
+
+interface LogoWordmarkProps {
+  size?: number;
+  className?: string;
+  tone?: "dark" | "light";
+  tagline?: string;
+}
+
+// Full lockup (mark + stacked name/tagline) for the header and footer — a
+// small-caps serif wordmark with a tracked tagline beneath it.
+export function LogoWordmark({ size = 34, className = "", tone = "light", tagline = "Staycation Houses" }: LogoWordmarkProps) {
+  const nameColor = tone === "dark" ? "text-ink-900" : "text-white";
+  const taglineColor = tone === "dark" ? "text-ink-500" : "text-ink-300";
+
+  return (
+    <span className={`flex items-center gap-3 ${className}`}>
+      <LogoMark size={size} tone={tone} />
+      <span className="flex flex-col leading-none">
+        <span className={`font-serif text-lg font-semibold tracking-wide ${nameColor}`}>YHWH Transient</span>
+        <span className={`mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${taglineColor}`}>{tagline}</span>
+      </span>
+    </span>
+  );
+}

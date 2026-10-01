@@ -86,6 +86,7 @@ export function PaymentsAnalyticsPage() {
                 <div className="flex items-center gap-4">
                   <span className="text-sm">
                     {formatMoney(p.amountCentavos)} via {formatPaymentMethod(p.method)}
+                    {p.transactionRef && <span className="text-ink-400"> (txn: {p.transactionRef})</span>}
                   </span>
                   {p.booking && (
                     <Link to={`/admin/reservations/${p.booking._id}`} className="text-xs font-medium text-brand-600 hover:text-brand-700">

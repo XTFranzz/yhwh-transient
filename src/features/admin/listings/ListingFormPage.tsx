@@ -6,6 +6,7 @@ import type { Id } from "../../../../convex/_generated/dataModel";
 import { Button } from "../../../components/ui/Button";
 import { Input, Select, Textarea } from "../../../components/ui/Input";
 import { PageSpinner, ErrorBanner } from "../../../components/ui/Feedback";
+import { getErrorMessage } from "../../../lib/errors";
 import { PhotoManager } from "./components/PhotoManager";
 
 type ListingType = "house" | "vehicle" | "tour";
@@ -215,7 +216,7 @@ export function ListingFormPage() {
         return;
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(getErrorMessage(err));
     } finally {
       setSubmitting(false);
     }

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { formatMoney } from "../../../lib/format";
+import { getErrorMessage } from "../../../lib/errors";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { Modal } from "../../../components/ui/Modal";
@@ -44,7 +45,7 @@ export function CustomersListPage() {
       setEmail("");
       setPhone("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create customer.");
+      setError(getErrorMessage(err, "Could not create customer."));
     } finally {
       setSubmitting(false);
     }

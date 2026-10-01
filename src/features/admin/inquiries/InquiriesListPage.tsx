@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { formatDate, formatStatus } from "../../../lib/format";
+import { getErrorMessage } from "../../../lib/errors";
 import { Button } from "../../../components/ui/Button";
 import { Badge, StatusBadge } from "../../../components/ui/Badge";
 import { Icon } from "../../../components/ui/Icon";
@@ -32,7 +33,7 @@ export function InquiriesListPage() {
     try {
       await updateStatus({ inquiryId, status: next });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update inquiry.");
+      setError(getErrorMessage(err, "Could not update inquiry."));
     } finally {
       setBusyId(null);
     }

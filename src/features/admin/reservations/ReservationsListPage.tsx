@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { formatDate, formatMoney, formatStatus } from "../../../lib/format";
-import { StatusBadge } from "../../../components/ui/Badge";
+import { Badge, StatusBadge } from "../../../components/ui/Badge";
 import { PageSpinner, EmptyState } from "../../../components/ui/Feedback";
 import { Button } from "../../../components/ui/Button";
 import { Icon } from "../../../components/ui/Icon";
@@ -60,6 +60,7 @@ export function ReservationsListPage() {
                 <th className="px-4 py-3">Listing</th>
                 <th className="px-4 py-3">Dates</th>
                 <th className="px-4 py-3">Total</th>
+                <th className="px-4 py-3">Payment</th>
                 <th className="px-4 py-3">Status</th>
               </tr>
             </thead>
@@ -82,6 +83,17 @@ export function ReservationsListPage() {
                     {formatDate(b.startDate)} → {formatDate(b.endDate)}
                   </td>
                   <td className="px-4 py-3">{formatMoney(b.totalCentavos)}</td>
+                  <td className="px-4 py-3">
+                    {b.status === "pending_payment" && b.paidCentavos > 0 ? (
+                      <Badge tone="info">Down payment: {formatMoney(b.paidCentavos)}</Badge>
+                    ) : b.status === "pending_payment" ? (
+                      <span className="text-ink-400">Unpaid</span>
+                    ) : ["confirmed", "checked_in", "checked_out"].includes(b.status) ? (
+                      <span className="text-teal-700">Paid in full</span>
+                    ) : (
+                      <span className="text-ink-400">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={b.status} label={formatStatus(b.status)} />
                   </td>

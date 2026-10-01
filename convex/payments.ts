@@ -46,6 +46,7 @@ export const recordByStaff = mutation({
     amountCentavos: v.number(),
     method: v.union(v.literal("gcash"), v.literal("bank_transfer"), v.literal("cash")),
     receiptStorageId: v.optional(v.id("_storage")),
+    transactionRef: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requireRole(ctx, ANY_STAFF);
@@ -66,6 +67,7 @@ export const recordByStaff = mutation({
       receiptStorageId: args.receiptStorageId,
       amountCentavos: args.amountCentavos,
       method: args.method,
+      transactionRef: args.transactionRef?.trim() || undefined,
       status: "verified",
       reviewedBy: userId,
       reviewedAt: Date.now(),

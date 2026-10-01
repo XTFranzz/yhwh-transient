@@ -158,6 +158,9 @@ export default defineSchema({
     receiptStorageId: v.optional(v.id("_storage")),
     amountCentavos: v.number(),
     method: v.union(v.literal("gcash"), v.literal("bank_transfer"), v.literal("cash")),
+    // GCash/bank transfer confirmation number, for reconciling against the
+    // bank/e-wallet statement later. Not meaningful for cash.
+    transactionRef: v.optional(v.string()),
     status: v.union(v.literal("submitted"), v.literal("verified"), v.literal("rejected")),
     rejectionReason: v.optional(v.string()),
     reviewedBy: v.optional(v.id("users")),

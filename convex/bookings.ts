@@ -7,6 +7,7 @@ import { requireRole, ANY_STAFF } from "./lib/auth";
 import { generateUniqueReferenceNumber } from "./lib/referenceNumber";
 import { isValidDateString, nightsBetween, todayDateString } from "./lib/dateRanges";
 import { isListingAvailable } from "./lib/availabilityHelpers";
+import { computeLineItem } from "./lib/pricing";
 import { findOrCreateCustomer, type CustomerInput } from "./lib/customers";
 import { getBookingBalance } from "./payments";
 
@@ -23,8 +24,9 @@ export const paymentMethods = ["gcash", "bank_transfer", "cash"] as const;
 export const initialPaymentValidator = v.object({
   amountCentavos: v.number(),
   method: v.union(...paymentMethods.map((m) => v.literal(m))),
+  transactionRef: v.optional(v.string()),
 });
-type InitialPayment = { amountCentavos: number; method: (typeof paymentMethods)[number] };
+type InitialPayment = { amountCentavos: number; method: (typeof paymentMethods)[number]; transactionRef?: string };
 
 // Legal forward transitions per current status. Cancellation/no-show are only
 // reachable from states that haven't already reached a terminal outcome.
@@ -81,11 +83,7 @@ export async function createBookingCore(ctx: MutationCtx, args: CreateBookingArg
   const { customerId } = await findOrCreateCustomer(ctx, args.customer);
 
   const referenceNumber = await generateUniqueReferenceNumber(ctx);
-  // Houses/vehicles are priced per night/day of the stay; tours are priced per head for a single day.
-  const totalCentavos =
-    listing.type === "tour"
-      ? listing.basePriceCentavos * args.guestCount
-      : listing.basePriceCentavos * nightsBetween(args.startDate, args.endDate);
+  const { totalCentavos } = computeLineItem(listing, args.startDate, args.endDate, args.guestCount);
   const bookingId = await ctx.db.insert("bookings", {
     referenceNumber,
     listingId: args.listingId,
@@ -130,6 +128,7 @@ export async function applyInitialPayment(
     bookingId,
     amountCentavos: payment.amountCentavos,
     method: payment.method,
+    transactionRef: payment.transactionRef?.trim() || undefined,
     status: "verified",
     reviewedBy: userId,
     reviewedAt: Date.now(),
@@ -225,11 +224,14 @@ export const listForAdmin = query({
     }
 
     return Promise.all(
-      bookings.map(async (booking) => ({
-        ...booking,
-        customer: await ctx.db.get(booking.customerId),
-        listing: await ctx.db.get(booking.listingId),
-      })),
+      bookings.map(async (booking) => {
+        const [customer, listing, { paidCentavos, balanceCentavos }] = await Promise.all([
+          ctx.db.get(booking.customerId),
+          ctx.db.get(booking.listingId),
+          getBookingBalance(ctx, booking._id, booking.totalCentavos),
+        ]);
+        return { ...booking, customer, listing, paidCentavos, balanceCentavos };
+      }),
     );
   },
 });

@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", icon: "speedometer2", end: true, roles: ANY_STAFF },
   { to: "/admin/reservations", label: "Reservations", icon: "calendar-check", roles: ANY_STAFF },
   { to: "/admin/inquiries", label: "Inquiries", icon: "chat-dots", roles: ANY_STAFF },
+  { to: "/admin/invoices", label: "Invoices", icon: "receipt", roles: ANY_STAFF },
   { to: "/admin/listings", label: "Listings", icon: "house-door", roles: ADMIN_UP },
   { to: "/admin/payments", label: "Payments", icon: "credit-card", roles: ANY_STAFF },
   { to: "/admin/customers", label: "Customers", icon: "people", roles: ANY_STAFF },
@@ -53,7 +54,7 @@ export function AdminLayout() {
 
   return (
     <div className="flex min-h-svh bg-ink-50">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-ink-100 bg-white px-4 py-6 md:flex">
+      <aside className="no-print hidden w-64 shrink-0 flex-col border-r border-ink-100 bg-white px-4 py-6 md:flex">
         <div className="mb-8 flex items-center gap-2.5 px-2 text-lg font-semibold text-ink-900">
           <LogoMark size={28} />
           YHWH Admin
@@ -83,7 +84,7 @@ export function AdminLayout() {
       )}
 
       <div className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-ink-100 bg-white px-4 py-4 sm:px-6">
+        <header className="no-print flex items-center justify-between border-b border-ink-100 bg-white px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileNavOpen(true)}

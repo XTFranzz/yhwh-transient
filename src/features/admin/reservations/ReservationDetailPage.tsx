@@ -4,10 +4,11 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { formatDate, formatMoney, formatPaymentMethod, formatStatus } from "../../../lib/format";
+import { getErrorMessage } from "../../../lib/errors";
 import { Button } from "../../../components/ui/Button";
 import { Input, Select } from "../../../components/ui/Input";
 import { Modal } from "../../../components/ui/Modal";
-import { StatusBadge } from "../../../components/ui/Badge";
+import { Badge, StatusBadge } from "../../../components/ui/Badge";
 import { PageSpinner, ErrorBanner } from "../../../components/ui/Feedback";
 
 type BookingStatus = "pending_payment" | "confirmed" | "checked_in" | "checked_out" | "cancelled" | "no_show";
@@ -36,6 +37,7 @@ export function ReservationDetailPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"gcash" | "bank_transfer" | "cash">("cash");
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [transactionRef, setTransactionRef] = useState("");
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
 
@@ -51,7 +53,7 @@ export function ReservationDetailPage() {
     try {
       await updateStatus({ bookingId: booking._id, newStatus });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update status.");
+      setError(getErrorMessage(err, "Could not update status."));
     } finally {
       setSubmitting(false);
     }
@@ -59,6 +61,7 @@ export function ReservationDetailPage() {
 
   function openPaymentModal() {
     setPaymentAmount((balanceCentavos / 100).toFixed(2));
+    setTransactionRef("");
     setPaymentError(null);
     setShowPaymentModal(true);
   }
@@ -73,10 +76,15 @@ export function ReservationDetailPage() {
     }
     setRecording(true);
     try {
-      await recordPayment({ bookingId: booking._id, amountCentavos, method: paymentMethod });
+      await recordPayment({
+        bookingId: booking._id,
+        amountCentavos,
+        method: paymentMethod,
+        transactionRef: paymentMethod !== "cash" ? transactionRef.trim() || undefined : undefined,
+      });
       setShowPaymentModal(false);
     } catch (err) {
-      setPaymentError(err instanceof Error ? err.message : "Could not record payment.");
+      setPaymentError(getErrorMessage(err, "Could not record payment."));
     } finally {
       setRecording(false);
     }
@@ -93,8 +101,19 @@ export function ReservationDetailPage() {
           <h1 className="text-xl font-semibold text-ink-900">{listing?.title}</h1>
           <p className="text-sm text-ink-500">Ref: {booking.referenceNumber}</p>
         </div>
-        <StatusBadge status={booking.status} label={formatStatus(booking.status)} />
+        <div className="flex flex-col items-end gap-1.5">
+          <StatusBadge status={booking.status} label={formatStatus(booking.status)} />
+          {booking.status === "pending_payment" && paidCentavos > 0 && (
+            <Badge tone="info">Down payment: {formatMoney(paidCentavos)}</Badge>
+          )}
+        </div>
       </div>
+
+      <Link to={`/admin/reservations/new?customerId=${booking.customerId}`} className="mt-3 inline-block">
+        <Button variant="outline" size="sm">
+          + Add another reservation for this customer
+        </Button>
+      </Link>
 
       <div className="mt-6 grid grid-cols-2 gap-4 rounded-2xl border border-ink-100 p-5 text-sm">
         <div>
@@ -142,6 +161,7 @@ export function ReservationDetailPage() {
                     <p>
                       {formatMoney(p.amountCentavos)} via {formatPaymentMethod(p.method)}
                     </p>
+                    {p.transactionRef && <p className="text-xs text-ink-400">Ref: {p.transactionRef}</p>}
                     {p.rejectionReason && <p className="text-xs text-red-600">{p.rejectionReason}</p>}
                   </div>
                 </div>
@@ -189,6 +209,14 @@ export function ReservationDetailPage() {
             onChange={(e) => setPaymentAmount(e.target.value)}
             required
           />
+          {paymentMethod !== "cash" && (
+            <Input
+              label={paymentMethod === "gcash" ? "GCash reference number" : "Bank transfer reference number"}
+              hint="Optional, but saves time reconciling against the statement later."
+              value={transactionRef}
+              onChange={(e) => setTransactionRef(e.target.value)}
+            />
+          )}
           {paymentError && <ErrorBanner message={paymentError} />}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setShowPaymentModal(false)}>

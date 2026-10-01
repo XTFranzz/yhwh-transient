@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { createAccount } from "@convex-dev/auth/server";
-import { action, internalQuery } from "./_generated/server";
+import { action, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 
 // One-time escape hatch for creating the very first superadmin login, before
@@ -29,5 +29,17 @@ export const bootstrapFirstOwner = action({
       role: "superadmin",
     });
     return { userId: user._id };
+  },
+});
+
+// Temporary dev-only helper to wipe the single local staff/auth account so it
+// can be re-bootstrapped with different credentials. Not wired to any route.
+export const devResetStaff = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    for (const row of await ctx.db.query("staffProfiles").collect()) await ctx.db.delete(row._id);
+    for (const row of await ctx.db.query("authAccounts").collect()) await ctx.db.delete(row._id);
+    for (const row of await ctx.db.query("authSessions").collect()) await ctx.db.delete(row._id);
+    for (const row of await ctx.db.query("users").collect()) await ctx.db.delete(row._id);
   },
 });

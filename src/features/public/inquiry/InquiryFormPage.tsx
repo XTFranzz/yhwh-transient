@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { formatDate, formatMoney } from "../../../lib/format";
+import { getErrorMessage } from "../../../lib/errors";
 import { useInquiryDraftStore } from "../../../lib/store";
 import { Button } from "../../../components/ui/Button";
 import { Input, Textarea } from "../../../components/ui/Input";
@@ -74,7 +75,7 @@ export function InquiryFormPage() {
       resetDraft();
       navigate("/inquiry-sent", { state: { listingTitle } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(getErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
       setSubmitting(false);
     }

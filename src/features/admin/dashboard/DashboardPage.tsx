@@ -4,6 +4,7 @@ import { formatMoney } from "../../../lib/format";
 import { StatTile, Card } from "../../../components/ui/Card";
 import { PageSpinner } from "../../../components/ui/Feedback";
 import { BookingsStatusChart } from "./components/BookingsStatusChart";
+import { BookingsCalendar } from "./components/BookingsCalendar";
 
 export function DashboardPage() {
   const summary = useQuery(api.dashboard.summary, {});
@@ -37,6 +38,8 @@ export function DashboardPage() {
       <Card className="p-5">
         <BookingsStatusChart counts={statusCounts} />
       </Card>
+
+      <BookingsCalendar bookings={bookings} />
     </div>
   );
 }

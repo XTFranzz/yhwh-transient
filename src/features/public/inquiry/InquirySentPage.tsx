@@ -31,7 +31,7 @@ export function InquirySentPage() {
         <Link to="/">
           <Button>Back to home</Button>
         </Link>
-        <Link to="/contact">
+        <Link to="/#contact">
           <Button variant="outline">Contact us directly</Button>
         </Link>
       </div>

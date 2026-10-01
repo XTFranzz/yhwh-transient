@@ -7,6 +7,7 @@ import { Input, Select } from "../../../components/ui/Input";
 import { Modal } from "../../../components/ui/Modal";
 import { Badge } from "../../../components/ui/Badge";
 import { PageSpinner, ErrorBanner } from "../../../components/ui/Feedback";
+import { getErrorMessage } from "../../../lib/errors";
 
 type StaffRole = "staff" | "admin" | "superadmin";
 
@@ -44,7 +45,7 @@ export function StaffListPage() {
       setPassword("");
       setRole("staff");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create staff account.");
+      setError(getErrorMessage(err, "Could not create staff account."));
     } finally {
       setSubmitting(false);
     }

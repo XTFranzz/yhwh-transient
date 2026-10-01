@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { AdminLayout } from "./layouts/AdminLayout";
 import { AdminGuard } from "./routes/AdminGuard";
@@ -7,14 +7,10 @@ import { SplashScreen } from "./components/SplashScreen";
 import { HomePage } from "./features/public/listings/HomePage";
 import { SearchResultsPage } from "./features/public/listings/SearchResultsPage";
 import { ListingDetailPage } from "./features/public/listings/ListingDetailPage";
-import { VehiclesPage } from "./features/public/vehicles/VehiclesPage";
 import { VehicleDetailPage } from "./features/public/vehicles/VehicleDetailPage";
-import { ToursPage } from "./features/public/tours/ToursPage";
 import { TourDetailPage } from "./features/public/tours/TourDetailPage";
 import { InquiryFormPage } from "./features/public/inquiry/InquiryFormPage";
 import { InquirySentPage } from "./features/public/inquiry/InquirySentPage";
-import { BookingLookupPage } from "./features/public/lookup/BookingLookupPage";
-import { ContactPage } from "./features/public/info/ContactPage";
 import { FaqPage } from "./features/public/info/FaqPage";
 
 import { LoginPage } from "./features/admin/auth/LoginPage";
@@ -25,6 +21,8 @@ import { ReservationsListPage } from "./features/admin/reservations/Reservations
 import { ReservationDetailPage } from "./features/admin/reservations/ReservationDetailPage";
 import { NewReservationPage } from "./features/admin/reservations/NewReservationPage";
 import { InquiriesListPage } from "./features/admin/inquiries/InquiriesListPage";
+import { InvoicesListPage } from "./features/admin/invoices/InvoicesListPage";
+import { InvoiceDetailPage } from "./features/admin/invoices/InvoiceDetailPage";
 import { PaymentsAnalyticsPage } from "./features/admin/payments/PaymentsAnalyticsPage";
 import { CustomersListPage } from "./features/admin/customers/CustomersListPage";
 import { CustomerDetailPage } from "./features/admin/customers/CustomerDetailPage";
@@ -39,15 +37,18 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchResultsPage />} />
           <Route path="/listings/:slug" element={<ListingDetailPage />} />
-          <Route path="/vehicles" element={<VehiclesPage />} />
           <Route path="/vehicles/:slug" element={<VehicleDetailPage />} />
-          <Route path="/tours" element={<ToursPage />} />
           <Route path="/tours/:slug" element={<TourDetailPage />} />
           <Route path="/inquire/:slug" element={<InquiryFormPage />} />
           <Route path="/inquiry-sent" element={<InquirySentPage />} />
-          <Route path="/my-booking" element={<BookingLookupPage />} />
-          <Route path="/contact" element={<ContactPage />} />
           <Route path="/faqs" element={<FaqPage />} />
+
+          {/* These are now sections on the one-page homepage; keep the old URLs working. */}
+          <Route path="/about" element={<Navigate to="/#about" replace />} />
+          <Route path="/vehicles" element={<Navigate to="/#vehicles" replace />} />
+          <Route path="/tours" element={<Navigate to="/#tours" replace />} />
+          <Route path="/my-booking" element={<Navigate to="/#my-booking" replace />} />
+          <Route path="/contact" element={<Navigate to="/#contact" replace />} />
         </Route>
 
         <Route path="/admin/login" element={<LoginPage />} />
@@ -64,6 +65,8 @@ export default function App() {
           <Route path="reservations/new" element={<NewReservationPage />} />
           <Route path="reservations/:bookingId" element={<ReservationDetailPage />} />
           <Route path="inquiries" element={<InquiriesListPage />} />
+          <Route path="invoices" element={<InvoicesListPage />} />
+          <Route path="invoices/:kind/:id" element={<InvoiceDetailPage />} />
           <Route path="listings" element={<ListingsListPage />} />
           <Route path="listings/new" element={<ListingFormPage />} />
           <Route path="listings/:listingId/edit" element={<ListingFormPage />} />
