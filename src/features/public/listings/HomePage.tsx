@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { Link } from "react-router-dom";
 import { api } from "../../../../convex/_generated/api";
@@ -13,10 +13,17 @@ import { StatusBadge } from "../../../components/ui/Badge";
 import { PageSpinner, ErrorBanner } from "../../../components/ui/Feedback";
 import { formatDate, formatMoney, formatPaymentMethod, formatStatus } from "../../../lib/format";
 
-const HERO_PHOTO_BACK =
-  "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=800&q=80";
-const HERO_PHOTO_FRONT =
-  "https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&w=700&q=80";
+// Cycles through the hero photo stack so it reads as a little slideshow of
+// the kind of houses on offer, instead of two fixed photos.
+const HERO_PHOTOS = [
+  "https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&w=800&q=80", // log cabin in the forest
+  "https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=800&q=80", // mountain hut at sunset
+  "https://images.unsplash.com/photo-1521401830884-6c03c1c87ebb?auto=format&fit=crop&w=800&q=80", // treehouse
+  "https://images.unsplash.com/photo-1506974210756-8e1b8985d348?auto=format&fit=crop&w=800&q=80", // log cabin, mountain backdrop
+  "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=800&q=80", // villa with pool
+];
+const HERO_PHOTO_INTERVAL_MS = 3200;
+
 const ABOUT_PHOTO = "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=800&q=80";
 
 const VEHICLE_ICON: Record<string, string> = { van: "truck", car: "car-front", motorcycle: "scooter" };
@@ -68,6 +75,45 @@ function SectionHeading({ eyebrow, title, description }: { eyebrow: string; titl
   );
 }
 
+// Every photo for this frame is already in the DOM, stacked — advancing just
+// crossfades opacity between the current and next one, instead of swapping
+// the src (which would just hard-cut, or popping a new element in).
+function PhotoFrame({ photos, activeIndex, className }: { photos: string[]; activeIndex: number; className: string }) {
+  return (
+    <div className={`absolute overflow-hidden rounded-sm border-4 border-white bg-white shadow-popover ${className}`}>
+      {photos.map((photo, i) => (
+        <img
+          key={photo}
+          src={photo}
+          alt="Staycation house, vehicle, or tour on offer"
+          className={`absolute inset-0 h-full w-full rounded-[1px] object-cover transition-opacity duration-1000 ease-in-out ${
+            i === activeIndex ? "opacity-100" : "opacity-0"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+// A little "picking the next one" slideshow: every tick the back and front
+// polaroids both crossfade to the next photo in the list, looping forever
+// through the whole set.
+function HeroPhotoStack({ photos }: { photos: string[] }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setIndex((i) => (i + 1) % photos.length), HERO_PHOTO_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [photos.length]);
+
+  return (
+    <div className="relative mx-auto h-80 w-full max-w-sm sm:h-96">
+      <PhotoFrame photos={photos} activeIndex={index % photos.length} className="left-0 top-0 h-full w-11/12 -rotate-3" />
+      <PhotoFrame photos={photos} activeIndex={(index + 1) % photos.length} className="bottom-0 right-0 h-3/5 w-3/5 rotate-2" />
+    </div>
+  );
+}
+
 function HeroSection() {
   return (
     <section className="relative border-b border-ink-800 bg-ink-900 px-4 pb-28 pt-16 sm:px-6 lg:px-8 lg:pt-20">
@@ -78,22 +124,7 @@ function HeroSection() {
       </div>
 
       <div className="relative mx-auto grid max-w-6xl gap-16 lg:grid-cols-2 lg:items-center lg:gap-10">
-        <div className="relative mx-auto h-80 w-full max-w-sm sm:h-96">
-          <div className="absolute left-0 top-0 h-full w-11/12 -rotate-3 rounded-sm border-4 border-white bg-white shadow-popover">
-            <img
-              src={HERO_PHOTO_BACK}
-              alt="Mountain lake view near a transient house"
-              className="h-full w-full rounded-[1px] object-cover"
-            />
-          </div>
-          <div className="absolute bottom-0 right-0 h-3/5 w-3/5 rotate-2 rounded-sm border-4 border-white bg-white shadow-popover">
-            <img
-              src={HERO_PHOTO_FRONT}
-              alt="Cozy wooden house exterior"
-              className="h-full w-full rounded-[1px] object-cover"
-            />
-          </div>
-        </div>
+        <HeroPhotoStack photos={HERO_PHOTOS} />
 
         <div className="flex flex-col items-start gap-6 text-left">
           <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-brand-400">
