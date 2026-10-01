@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>YHWH Transient</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* layout: single flowing reference doc; sticky top section-nav; architecture
+       diagram is stacked flex panels joined by plain connector bars, no SVG */
+    --bg: #faf7f4;
+    --surface: #ffffff;
+    --surface-muted: #f2ece6;
+    --border: #e4dad2;
+    --fg: #1d2430;
+    --muted: #5c6472;
+    --accent: #a8626d;
+    --accent-strong: #8a4a54;
+    --accent-soft: #f1e2e4;
+    --navy: #1d2430;
+    --navy-soft: #2b3545;
+    --status-done-bg: #dcefe6;
+    --status-done-fg: #1f6f4f;
+    --status-progress-bg: #faf0d7;
+    --status-progress-fg: #8a6d1f;
+    --status-planned-bg: #eceef1;
+    --status-planned-fg: #5c6472;
+    --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    --font-body: 'IBM Plex Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161d;
+      --surface: #1a212b;
+      --surface-muted: #202834;
+      --border: #2d3745;
+      --fg: #ece8e4;
+      --muted: #9aa4b2;
+      --accent: #d99aa3;
+      --accent-strong: #e8b4bc;
+      --accent-soft: #3a2730;
+      --navy: #0d1117;
+      --navy-soft: #1a212b;
+      --status-done-bg: #163427;
+      --status-done-fg: #6fd3a8;
+      --status-progress-bg: #3a2f12;
+      --status-progress-fg: #e3c067;
+      --status-planned-bg: #222933;
+      --status-planned-fg: #9aa4b2;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12161d;
+    --surface: #1a212b;
+    --surface-muted: #202834;
+    --border: #2d3745;
+    --fg: #ece8e4;
+    --muted: #9aa4b2;
+    --accent: #d99aa3;
+    --accent-strong: #e8b4bc;
+    --accent-soft: #3a2730;
+    --navy: #0d1117;
+    --navy-soft: #1a212b;
+    --status-done-bg: #163427;
+    --status-done-fg: #6fd3a8;
+    --status-progress-bg: #3a2f12;
+    --status-progress-fg: #e3c067;
+    --status-planned-bg: #222933;
+    --status-planned-fg: #9aa4b2;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+  a { color: var(--accent-strong); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code, .mono { font-family: var(--font-mono); }
+
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+  h2 { font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.1rem); font-weight: 600; }
+  h3 { font-size: 1.15rem; font-weight: 600; }
+  p { max-width: 66ch; }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .wrap { max-width: 920px; margin: 0 auto; padding-inline: 1.25rem; }
+
+  /* ---------- top nav ---------- */
+  .topnav {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 20;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topnav-inner {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 0.7rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .brand-mini { font-family: var(--font-display); font-weight: 600; font-size: 1rem; white-space: nowrap; }
+  .navlinks { display: flex; gap: 1.1rem; flex-wrap: wrap; margin-left: auto; }
+  .navlinks a {
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .navlinks a:hover { color: var(--accent-strong); }
+  .theme-toggle {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    background: var(--surface-muted);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+  }
+  .theme-toggle:hover { color: var(--fg); }
+
+  /* ---------- masthead ---------- */
+  .masthead { padding-block: 3rem 2.25rem; border-bottom: 1px solid var(--border); }
+  .crest-tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+    margin-bottom: 0.9rem;
+  }
+  .masthead h1 {
+    font-size: clamp(2.3rem, 1.9rem + 2vw, 3.4rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .masthead .sub {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.15rem;
+    color: var(--muted);
+    margin-top: 0.4rem;
+  }
+  .masthead .lede { margin-top: 1.1rem; color: var(--fg); max-width: 60ch; }
+  .meta-row { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 1.4rem; }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 0.32rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .pill.status-live { background: var(--status-done-bg); color: var(--status-done-fg); border-color: transparent; }
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    padding: 0.28rem 0.65rem;
+    border-radius: 6px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    white-space: nowrap;
+  }
+  .chip-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+
+  /* ---------- sections ---------- */
+  section { padding-block: 3.25rem; border-bottom: 1px solid var(--border); }
+  section:last-of-type { border-bottom: none; }
+  .section-head { margin-bottom: 1.75rem; }
+  .section-head .eyebrow { margin-bottom: 0.5rem; }
+  .section-head p { color: var(--muted); margin-top: 0.6rem; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.4rem 1.5rem;
+  }
+
+  /* ---------- architecture diagram ---------- */
+  .arch-diagram { display: flex; flex-direction: column; align-items: stretch; gap: 0; margin-bottom: 1.75rem; }
+  .arch-row { display: grid; gap: 0.9rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .arch-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+    min-width: 0;
+  }
+  .arch-box.navy { background: var(--navy); color: #f3ede9; border-color: var(--navy); }
+  .arch-box.navy .arch-box-label { color: #d8c9cc; }
+  .arch-box-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+  .arch-box-title { font-weight: 600; font-size: 0.98rem; }
+  .arch-box-sub { font-size: 0.83rem; color: var(--muted); margin-top: 0.25rem; }
+  .arch-box.navy .arch-box-sub { color: #c4b9bb; }
+  .connector { width: 2px; height: 26px; background: var(--border); margin: 0 auto; position: relative; }
+  .connector::after {
+    content: "";
+    position: absolute;
+    left: 50%; bottom: -1px; transform: translateX(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid var(--border);
+  }
+  .table-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+  .decision-list { display: grid; gap: 0.9rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 1.75rem; }
+  .decision-list .card h3 { font-size: 0.98rem; margin-bottom: 0.4rem; }
+  .decision-list .card p { font-size: 0.9rem; color: var(--muted); margin: 0; max-width: none; }
+
+  /* ---------- requirements ---------- */
+  .req-grid { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .req-grid .card h3 { margin-bottom: 0.2rem; }
+  .req-grid .card .eyebrow { margin-bottom: 0.6rem; }
+  .req-grid ul { margin: 0; padding-left: 1.1rem; font-size: 0.92rem; }
+  .req-grid li { margin-bottom: 0.45rem; }
+  .req-grid li::marker { color: var(--accent); }
+  .req-grid .out-of-scope { background: var(--surface-muted); }
+  .req-grid .out-of-scope li::marker { color: var(--muted); }
+  .req-grid .out-of-scope li { color: var(--muted); }
+
+  /* ---------- process timeline ---------- */
+  .timeline { position: relative; margin-top: 0.5rem; }
+  .tl-item { display: grid; grid-template-columns: 2.6rem 1fr; gap: 1rem; position: relative; }
+  .tl-item:not(:last-child) { padding-bottom: 1.6rem; }
+  .tl-rail { position: relative; display: flex; justify-content: center; }
+  .tl-num {
+    width: 2.1rem; height: 2.1rem;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--accent-strong);
+    z-index: 1;
+  }
+  .tl-item:not(:last-child) .tl-rail::after {
+    content: "";
+    position: absolute;
+    top: 2.1rem; bottom: -1.6rem;
+    width: 1px;
+    background: var(--border);
+  }
+  .tl-body { padding-top: 0.15rem; min-width: 0; }
+  .tl-body h3 { font-size: 1rem; margin-bottom: 0.3rem; }
+  .tl-body p { font-size: 0.9rem; color: var(--muted); margin: 0; }
+
+  /* ---------- plan ---------- */
+  .phase-list { display: flex; flex-direction: column; gap: 0.9rem; }
+  .phase-card { display: grid; grid-template-columns: 7.5rem 1fr; gap: 1.1rem; align-items: start; }
+  .phase-card .phase-id { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); padding-top: 0.2rem; }
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.03em;
+    padding: 0.22rem 0.6rem; border-radius: 999px; margin-top: 0.4rem;
+  }
+  .status-badge.done { background: var(--status-done-bg); color: var(--status-done-fg); }
+  .status-badge.planned { background: var(--status-planned-bg); color: var(--status-planned-fg); }
+  .phase-card h3 { margin-bottom: 0.3rem; }
+  .phase-card p { font-size: 0.92rem; color: var(--muted); margin: 0; }
+  .deferred-card { margin-top: 1.5rem; background: var(--surface-muted); }
+  .deferred-card .eyebrow { margin-bottom: 0.7rem; }
+  .deferred-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.4rem 1.5rem; }
+  .deferred-grid ul { margin: 0; padding-left: 1.1rem; font-size: 0.9rem; color: var(--muted); }
+  .deferred-grid li { margin-bottom: 0.4rem; }
+  .deferred-grid li::marker { color: var(--muted); }
+
+  /* ---------- status ---------- */
+  .stat-row { display: grid; gap: 0.9rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom: 1.5rem; }
+  .stat-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.2rem; }
+  .stat-tile .eyebrow { margin-bottom: 0.5rem; }
+  .stat-tile .value { font-family: var(--font-display); font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat-tile .value.ok { color: var(--status-done-fg); }
+  .stat-tile .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+  .login-card { display: grid; grid-template-columns: 1fr; gap: 0.6rem; }
+  .login-row { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: 0.92rem; }
+  .login-row .k { color: var(--muted); }
+  .login-row .v { font-family: var(--font-mono); font-weight: 600; }
+  .snapshot-note { font-size: 0.82rem; color: var(--muted); margin-top: 1.1rem; }
+
+  footer { padding-block: 2.5rem calc(2.5rem + env(safe-area-inset-bottom, 0px)); }
+  footer p { font-size: 0.82rem; color: var(--muted); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .card, .arch-box, .stat-tile { transition: border-color 0.15s ease; }
+  }
+
+  @media (max-width: 560px) {
+    .phase-card { grid-template-columns: 1fr; }
+    .phase-card .phase-id { padding-top: 0; }
+  }
+</style>
+</head>
+<body>
+
+  <nav class="topnav">
+    <div class="topnav-inner">
+      <span class="brand-mini">YHWH Transient</span>
+      <div class="navlinks">
+        <a href="#architecture">Architecture</a>
+        <a href="#requirements">Requirements</a>
+        <a href="#process">Process</a>
+        <a href="#plan">Project plan</a>
+        <a href="#status">Status</a>
+      </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle color theme">Auto</button>
+    </div>
+  </nav>
+
+  <header class="masthead">
+    <div class="wrap">
+      <div class="crest-tag">Est. 2026 &middot; Town Proper</div>
+      <h1>YHWH Transient</h1>
+      <p class="sub">Project reference — architecture, requirements &amp; status</p>
+      <p class="lede">
+        A staff-run property management system for a staycation house, vehicle-rental, and city-tour
+        business. Staff manage listings, inquiries, reservations, payments, and customers from one
+        portal; the public site is browse-and-inquire only — nobody outside the business ever logs in.
+      </p>
+      <div class="meta-row">
+        <span class="pill status-live">● Phase 5 shipped</span>
+        <span class="pill">Single property, not multi-tenant</span>
+        <span class="pill">Local dev, Convex-backed</span>
+      </div>
+      <div class="chip-row">
+        <span class="chip">Convex</span>
+        <span class="chip">React 18</span>
+        <span class="chip">Vite</span>
+        <span class="chip">TypeScript</span>
+        <span class="chip">Tailwind v4</span>
+        <span class="chip">Convex Auth</span>
+        <span class="chip">Zustand</span>
+        <span class="chip">Vitest</span>
+      </div>
+    </div>
+  </header>
+
+  <section id="architecture">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">01 — Architecture</div>
+        <h2>One reactive backend, no separate API layer</h2>
+        <p>Convex replaces what would otherwise be a REST/GraphQL API, a Postgres database, and a
+          migrations tool. The React app talks to Convex functions directly through
+          <code>convex/react</code> hooks — there is no client fetch layer to maintain.</p>
+      </div>
+
+      <div class="arch-diagram">
+        <div class="arch-row">
+          <div class="arch-box">
+            <span class="arch-box-label">Public site</span>
+            <div class="arch-box-title">Browse &amp; inquire</div>
+            <div class="arch-box-sub">Houses · vehicles · tours — no login, no payment</div>
+          </div>
+          <div class="arch-box">
+            <span class="arch-box-label">Staff portal</span>
+            <div class="arch-box-title">Admin console</div>
+            <div class="arch-box-sub">Dashboard · reservations · inquiries · customers · payments</div>
+          </div>
+        </div>
+        <div class="connector"></div>
+        <div class="arch-row" style="grid-template-columns: 1fr;">
+          <div class="arch-box navy">
+            <span class="arch-box-label">Convex functions</span>
+            <div class="arch-box-title">queries · mutations · actions — <span class="mono">convex/*.ts</span></div>
+            <div class="arch-box-sub">Role checks, availability logic, and payment-balance math all live here, never in the client.</div>
+          </div>
+        </div>
+        <div class="connector"></div>
+        <div class="arch-row" style="grid-template-columns: 1fr;">
+          <div class="arch-box">
+            <span class="arch-box-label">Convex tables</span>
+            <div class="table-grid">
+              <span class="chip">listings</span>
+              <span class="chip">houseDetails</span>
+              <span class="chip">vehicleDetails</span>
+              <span class="chip">tourDetails</span>
+              <span class="chip">availabilityBlocks</span>
+              <span class="chip">customers</span>
+              <span class="chip">bookings</span>
+              <span class="chip">inquiries</span>
+              <span class="chip">payments</span>
+              <span class="chip">staffProfiles</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="decision-list">
+        <div class="card">
+          <h3>One listing table, three types</h3>
+          <p><span class="mono">listings</span> carries a <span class="mono">type</span> discriminator
+            (house / vehicle / tour); each type's own fields live in a satellite details table joined
+            by <span class="mono">listingId</span>. Convex indexes are per-table, so this reads cleaner
+            than one giant union table.</p>
+        </div>
+        <div class="card">
+          <h3>Availability as half-open ranges</h3>
+          <p>Booked dates are stored as <span class="mono">[startDate, endDate)</span> blocks and
+            checked for overlap in application code inside the same transaction as the booking insert —
+            Convex has no SQL exclusion constraint to lean on.</p>
+        </div>
+        <div class="card">
+          <h3>Customers deduped by contact, not name</h3>
+          <p>A customer record is matched by <span class="mono">(email, phone)</span>. Two different
+            people can share a name, so name is never used to merge records — the customer picker
+            disambiguates by showing contact info and last stay.</p>
+        </div>
+        <div class="card">
+          <h3>Payment balance is computed, not stored</h3>
+          <p>A booking's paid/owed amount is the sum of its <span class="mono">verified</span> payment
+            rows at read time, not a field kept in sync by hand — one booking can take several partial
+            payments with no risk of the total drifting.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="requirements">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">02 — Requirements</div>
+        <h2>Staff do the work; guests never log in</h2>
+        <p>The defining constraint of this system: every booking, every customer record, and every
+          payment is entered by staff. That one rule shapes almost everything below.</p>
+      </div>
+      <div class="req-grid">
+        <div class="card">
+          <div class="eyebrow">Public site</div>
+          <h3>Browse &amp; inquire</h3>
+          <ul>
+            <li>Search and view houses, vehicles, and tours</li>
+            <li>Submit a non-binding inquiry (dates, headcount, contact info)</li>
+            <li>No payment and no availability hold at inquiry time</li>
+            <li>Look up an existing booking by reference number + email</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="eyebrow">Staff portal</div>
+          <h3>Run the business</h3>
+          <ul>
+            <li>Dashboard: revenue, occupancy, today's check-ins/outs</li>
+            <li>Create a reservation manually, or convert an inquiry</li>
+            <li>Record one or more payments against a booking</li>
+            <li>Search, add, and review customers and their stay history</li>
+            <li>Manage listings, photos, and staff accounts</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="eyebrow">Access &amp; roles</div>
+          <h3>Three tiers</h3>
+          <ul>
+            <li><strong>Staff</strong> — reservations, inquiries, payments</li>
+            <li><strong>Admin</strong> — staff, plus listings management</li>
+            <li><strong>Superadmin</strong> — admin, plus staff accounts</li>
+          </ul>
+        </div>
+        <div class="card out-of-scope">
+          <div class="eyebrow">Explicitly out of scope</div>
+          <h3>By design, not yet</h3>
+          <ul>
+            <li>Customer accounts or customer login — never planned</li>
+            <li>Self-service booking or online payment capture</li>
+            <li>Multi-property / multi-tenant support</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="process">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">03 — Process</div>
+        <h2>How the system arrived here</h2>
+        <p>The build went through several real pivots rather than following a single upfront spec —
+          each one is a decision that changed the data model or the user flow, in order.</p>
+      </div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-rail"><div class="tl-num">01</div></div>
+          <div class="tl-body">
+            <h3>Scoped as a hotel-style PMS</h3>
+            <p>First pass assumed a FastAPI + PostgreSQL backend and a hotel-style booking flow.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-rail"><div class="tl-num">02</div></div>
+          <div class="tl-body">
+            <h3>Reframed the business</h3>
+            <p>Not a hotel — a Town Proper staycation house business that also runs Van &amp; Car Rental
+              and Basic City Tours.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-rail"><div class="tl-num">03</div></div>
+          <div class="tl-body">
+            <h3>Replaced the backend entirely</h3>
+            <p>Dropped FastAPI + PostgreSQL for Convex as the full backend — database, functions, and
+              auth in one system, not just managed hosting.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-rail"><div class="tl-num">04</div></div>
+          <div class="tl-body">
+            <h3>Added manual, staff-side booking</h3>
+            <p>Staff needed to log phone/Messenger/walk-in bookings directly, not only through the
+              public flow.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-rail"><div class="tl-num">05</div></div>
+          <div class="tl-body">
+            <h3>Dropped the Airbnb look-alike</h3>
+            <p>Rebuilt the public UI around the business's own navy + dusty-rose crest, including a
+              custom SVG logo mark.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-rail"><div class="tl-num">06</div></div>
+          <div class="tl-body">
+            <h3>Fixed a scroll-lock bug</h3>
+            <p>The splash screen locked page scroll and never released it once its animation finished.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-rail"><div class="tl-num">07</div></div>
+          <div class="tl-body">
+            <h3>Removed self-service booking</h3>
+            <p>Customers now submit inquiries only — no login, no payment, no availability hold.
+              Only staff create real bookings, by hand or by converting an inquiry.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-rail"><div class="tl-num">08</div></div>
+          <div class="tl-body">
+            <h3>Restructured roles</h3>
+            <p>Collapsed <span class="mono">owner_admin / front_desk / housekeeping</span> into
+              <span class="mono">staff / admin / superadmin</span>, migrated via a temporary-widen →
+              migrate → narrow schema change.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-rail"><div class="tl-num">09</div></div>
+          <div class="tl-body">
+            <h3>Turned Payments into analytics</h3>
+            <p>Retired the old "verify/reject" queue, a holdover from the self-service flow, in favor
+              of a revenue dashboard — totals, by method, by month.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-rail"><div class="tl-num">10</div></div>
+          <div class="tl-body">
+            <h3>Renamed guest → customer</h3>
+            <p>Every record is staff-entered, so "guest" no longer fit. Renamed the table, fields, and
+              UI labels throughout, with the same migrate-and-narrow pattern.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-rail"><div class="tl-num">11</div></div>
+          <div class="tl-body">
+            <h3>Built a real customer directory</h3>
+            <p>Search, add, and reuse customer records from a shared picker that disambiguates by
+              contact info and last stay instead of name.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-rail"><div class="tl-num">12</div></div>
+          <div class="tl-body">
+            <h3>Added payment balances</h3>
+            <p>Bookings can now take partial payments; a booking confirms only once fully paid. Cash
+              may run over the balance to cover a tip — GCash and bank transfer may not.</p>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-rail"><div class="tl-num">13</div></div>
+          <div class="tl-body">
+            <h3>Kept the booking lookup locked</h3>
+            <p>Considered dropping the email field from the public lookup since references are unique
+              — kept it, since a reference code alone isn't secret enough to gate full payment history
+              behind.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="plan">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">04 — Project plan</div>
+        <h2>Phased delivery</h2>
+        <p>Each phase shipped as a complete, working slice rather than a partial cross-cutting pass.</p>
+      </div>
+      <div class="phase-list">
+        <div class="phase-card">
+          <div class="phase-id">Phase 1<div class="status-badge done">Shipped</div></div>
+          <div>
+            <h3>Core PMS</h3>
+            <p>Public browsing and booking, staff auth, the admin dashboard, reservations, listings,
+              payments, and customers — houses only.</p>
+          </div>
+        </div>
+        <div class="phase-card">
+          <div class="phase-id">Phase 2<div class="status-badge done">Shipped</div></div>
+          <div>
+            <h3>Vehicles &amp; tours</h3>
+            <p>Extended the generic listing model with <span class="mono">vehicleDetails</span> and
+              <span class="mono">tourDetails</span>, and matching public + admin coverage.</p>
+          </div>
+        </div>
+        <div class="phase-card">
+          <div class="phase-id">Phase 3<div class="status-badge done">Shipped</div></div>
+          <div>
+            <h3>Brand identity</h3>
+            <p>Replaced the Airbnb-styled UI with the business's own navy + dusty-rose palette and a
+              custom logo mark.</p>
+          </div>
+        </div>
+        <div class="phase-card">
+          <div class="phase-id">Phase 4<div class="status-badge done">Shipped</div></div>
+          <div>
+            <h3>Inquiry-only flow &amp; roles</h3>
+            <p>Removed customer self-service booking in favor of staff-only creation, and restructured
+              access into three tiers.</p>
+          </div>
+        </div>
+        <div class="phase-card">
+          <div class="phase-id">Phase 5<div class="status-badge done">Shipped</div></div>
+          <div>
+            <h3>Customers &amp; payment balances</h3>
+            <p>Full guest → customer rename, the customer directory and picker, partial/overpayment
+              handling, and the Payments analytics dashboard.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card deferred-card">
+        <div class="eyebrow">Deferred — not started</div>
+        <div class="deferred-grid">
+          <ul>
+            <li>Housekeeping status board UI</li>
+            <li>Reports &amp; bookkeeping / expense tracking</li>
+            <li>Inventory management</li>
+          </ul>
+          <ul>
+            <li>Full multi-room admin calendar view</li>
+            <li>Settings UI</li>
+            <li>Payment gateway integration (payments stay manually recorded)</li>
+          </ul>
+          <ul>
+            <li>Multi-item booking bundling / cart</li>
+            <li>Automated email / SMS notifications</li>
+            <li>Finer-grained permissions beyond the three tiers</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="status">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">05 — Where we are now</div>
+        <h2>Status snapshot</h2>
+        <p>A fixed record of the project's state as of this write-up — it does not update itself; treat
+          it as a point-in-time reference, not a live dashboard.</p>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-tile">
+          <div class="eyebrow">Backend tests</div>
+          <div class="value ok">22 / 22</div>
+          <div class="hint">Vitest + convex-test, all passing</div>
+        </div>
+        <div class="stat-tile">
+          <div class="eyebrow">Typecheck</div>
+          <div class="value ok">Clean</div>
+          <div class="hint"><span class="mono">tsc -b</span>, zero errors</div>
+        </div>
+        <div class="stat-tile">
+          <div class="eyebrow">Frontend</div>
+          <div class="value mono" style="font-size:1.05rem;">localhost:5173</div>
+          <div class="hint">Vite dev server</div>
+        </div>
+        <div class="stat-tile">
+          <div class="eyebrow">Backend</div>
+          <div class="value mono" style="font-size:1.05rem;">localhost:3210</div>
+          <div class="hint">Convex local dev deployment</div>
+        </div>
+      </div>
+
+      <div class="card login-card">
+        <div class="eyebrow">Local dev login — superadmin</div>
+        <div class="login-row"><span class="k">Email</span><span class="v">admin@gmail.com</span></div>
+        <div class="login-row"><span class="k">Password</span><span class="v">admin123</span></div>
+        <div class="login-row"><span class="k">Start command</span><span class="v">npm run dev</span></div>
+      </div>
+
+      <p class="snapshot-note">
+        Next candidates come from the deferred list above, prioritized by whichever gap the business
+        actually runs into first — none of them are scheduled yet.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <p>Project reference for YHWH Transient. Reflects the state of the codebase at time of writing,
+        not a live view of it.</p>
+    </div>
+  </footer>
+
+<script>
+(function () {
+  var KEY = 'yhwh-doc-theme';
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  var order = ['auto', 'light', 'dark'];
+
+  function apply(mode) {
+    if (mode === 'auto') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', mode);
+    btn.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+  }
+
+  var saved = 'auto';
+  try { saved = localStorage.getItem(KEY) || 'auto'; } catch (e) {}
+  apply(saved);
+
+  btn.addEventListener('click', function () {
+    var current = 'auto';
+    try { current = localStorage.getItem(KEY) || 'auto'; } catch (e) {}
+    var next = order[(order.indexOf(current) + 1) % order.length];
+    apply(next);
+    try { localStorage.setItem(KEY, next); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>
