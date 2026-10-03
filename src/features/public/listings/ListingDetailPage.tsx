@@ -4,21 +4,11 @@ import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { formatMoney } from "../../../lib/format";
 import { useInquiryDraftStore } from "../../../lib/store";
+import { HOUSE_AMENITIES, amenityDisplay } from "../../../lib/amenities";
 import { Button } from "../../../components/ui/Button";
 import { PageSpinner, ErrorBanner } from "../../../components/ui/Feedback";
 import { AvailabilityCalendar } from "./components/AvailabilityCalendar";
 import { Icon } from "../../../components/ui/Icon";
-
-const AMENITY_ICONS: Record<string, { icon: string; label: string }> = {
-  wifi: { icon: "wifi", label: "WiFi" },
-  aircon: { icon: "snow", label: "Air conditioning" },
-  kitchen: { icon: "cup-hot", label: "Kitchen" },
-  kitchenette: { icon: "cup-hot", label: "Kitchenette" },
-  parking: { icon: "p-square", label: "Free parking" },
-  pool: { icon: "water", label: "Private pool" },
-  hot_shower: { icon: "droplet-half", label: "Hot shower" },
-  bbq_grill: { icon: "fire", label: "BBQ grill" },
-};
 
 interface HouseDetails {
   bedrooms: number;
@@ -125,12 +115,15 @@ export function ListingDetailPage() {
             <div>
               <h2 className="mb-3 text-lg font-semibold text-ink-900">Amenities</h2>
               <div className="grid grid-cols-2 gap-3 text-sm text-ink-700">
-                {houseDetails.amenities.map((a) => (
-                  <span key={a} className="flex items-center gap-2">
-                    <Icon name={AMENITY_ICONS[a]?.icon ?? "check-circle"} className="text-brand-500" />
-                    {AMENITY_ICONS[a]?.label ?? a}
-                  </span>
-                ))}
+                {houseDetails.amenities.map((a) => {
+                  const { icon, label } = amenityDisplay(a, HOUSE_AMENITIES);
+                  return (
+                    <span key={a} className="flex items-center gap-2">
+                      <Icon name={icon} className="text-brand-500" />
+                      {label}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}

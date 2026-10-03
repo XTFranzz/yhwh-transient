@@ -53,8 +53,14 @@ export default defineSchema({
     seats: v.number(),
     transmission: v.union(v.literal("manual"), v.literal("automatic")),
     withDriver: v.boolean(),
-    pickupLocation: v.string(),
+    // Arranged per booking (staff/Messenger), not fixed per vehicle — kept
+    // optional only so pre-existing rows that already had one don't break.
+    pickupLocation: v.optional(v.string()),
     features: v.array(v.string()),
+    // Optional (not backfilled on existing rows) so staff can fill it in
+    // next time they edit a vehicle created before this field existed.
+    // Mainly useful once there's more than one of the same model.
+    plateNumber: v.optional(v.string()),
   }).index("by_listingId", ["listingId"]),
 
   // Priced per head; a booking is always a single day (startDate/endDate one

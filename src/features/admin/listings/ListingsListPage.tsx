@@ -80,7 +80,10 @@ export function ListingsListPage() {
                         </span>
                       )}
                     </div>
-                    <span className="font-medium text-ink-900">{listing.title}</span>
+                    <div>
+                      <span className="block font-medium text-ink-900">{listing.title}</span>
+                      {listing.plateNumber && <span className="text-xs text-ink-500">{listing.plateNumber}</span>}
+                    </div>
                   </td>
                   <td className="px-4 py-3">{formatMoney(listing.basePriceCentavos)}</td>
                   <td className="px-4 py-3">{listing.maxGuests}</td>

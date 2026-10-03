@@ -23,8 +23,9 @@ const vehicleDetailsValidator = v.object({
   seats: v.number(),
   transmission: v.union(v.literal("manual"), v.literal("automatic")),
   withDriver: v.boolean(),
-  pickupLocation: v.string(),
+  pickupLocation: v.optional(v.string()),
   features: v.array(v.string()),
+  plateNumber: v.optional(v.string()),
 });
 
 const tourDetailsValidator = v.object({
@@ -124,7 +125,17 @@ export const listAllForAdmin = query({
           .collect()
       : await ctx.db.query("listings").order("desc").collect();
     return Promise.all(
-      listings.map(async (listing) => ({ ...listing, coverPhotoUrl: await coverPhotoUrl(ctx, listing._id) })),
+      listings.map(async (listing) => {
+        let plateNumber: string | undefined;
+        if (listing.type === "vehicle") {
+          const details = await ctx.db
+            .query("vehicleDetails")
+            .withIndex("by_listingId", (q) => q.eq("listingId", listing._id))
+            .unique();
+          plateNumber = details?.plateNumber;
+        }
+        return { ...listing, coverPhotoUrl: await coverPhotoUrl(ctx, listing._id), plateNumber };
+      }),
     );
   },
 });

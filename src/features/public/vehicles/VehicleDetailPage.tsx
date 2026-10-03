@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { formatMoney } from "../../../lib/format";
 import { useInquiryDraftStore } from "../../../lib/store";
+import { VEHICLE_FEATURES, amenityDisplay } from "../../../lib/amenities";
 import { Button } from "../../../components/ui/Button";
 import { PageSpinner, ErrorBanner } from "../../../components/ui/Feedback";
 import { AvailabilityCalendar } from "../listings/components/AvailabilityCalendar";
@@ -14,7 +15,7 @@ interface VehicleDetails {
   seats: number;
   transmission: "manual" | "automatic";
   withDriver: boolean;
-  pickupLocation: string;
+  plateNumber?: string;
   features: string[];
 }
 
@@ -77,7 +78,6 @@ export function VehicleDetailPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <h1 className="text-2xl font-semibold text-ink-900">{listing.title}</h1>
-      {details && <p className="mt-1 text-sm text-ink-500">Pickup: {details.pickupLocation}</p>}
 
       {listing.photos.length > 0 ? (
         <div className="mt-4 grid grid-cols-2 gap-2 overflow-hidden rounded-2xl sm:grid-cols-4 sm:grid-rows-2">
@@ -103,6 +103,7 @@ export function VehicleDetailPage() {
               <span>{details.seats} seats</span>
               <span className="capitalize">{details.transmission}</span>
               <span>{details.withDriver ? "With driver" : "Self-drive"}</span>
+              {details.plateNumber && <span>Plate: {details.plateNumber}</span>}
             </div>
           )}
 
@@ -115,12 +116,15 @@ export function VehicleDetailPage() {
             <div>
               <h2 className="mb-3 text-lg font-semibold text-ink-900">Features</h2>
               <div className="grid grid-cols-2 gap-3 text-sm text-ink-700">
-                {details.features.map((f) => (
-                  <span key={f} className="flex items-center gap-2">
-                    <Icon name="check-circle" className="text-brand-500" />
-                    {f}
-                  </span>
-                ))}
+                {details.features.map((f) => {
+                  const { icon, label } = amenityDisplay(f, VEHICLE_FEATURES);
+                  return (
+                    <span key={f} className="flex items-center gap-2">
+                      <Icon name={icon} className="text-brand-500" />
+                      {label}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}

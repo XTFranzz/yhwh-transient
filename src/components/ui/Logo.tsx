@@ -24,6 +24,20 @@ export function LogoMark({ size = 32, className = "", tone = "dark" }: LogoMarkP
       <path d="M30,52 L50,15 L70,52" className={line} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" fill="none" />
       <path d="M35,52 L50,23 L65,52" className={line} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" fill="none" />
 
+      {/* Small cross-pane windows on each gable — without these the three
+          peaks read as a mountain range instead of a row of houses. */}
+      <g className={ring} strokeWidth="1.3" fill="none">
+        <rect x="23" y="40" width="8" height="8" />
+        <line x1="27" y1="40" x2="27" y2="48" />
+        <line x1="23" y1="44" x2="31" y2="44" />
+        <rect x="46" y="40" width="8" height="8" />
+        <line x1="50" y1="40" x2="50" y2="48" />
+        <line x1="46" y1="44" x2="54" y2="44" />
+        <rect x="69" y="40" width="8" height="8" />
+        <line x1="73" y1="40" x2="73" y2="48" />
+        <line x1="69" y1="44" x2="77" y2="44" />
+      </g>
+
       <line x1="5" y1="52" x2="95" y2="52" className={line} strokeWidth="2.5" strokeLinecap="round" />
       <circle cx="5" cy="52" r="2.5" className={fill} />
       <circle cx="95" cy="52" r="2.5" className={fill} />

@@ -6,21 +6,20 @@ import { SearchBar } from "./components/SearchBar";
 import { ListingsGrid } from "./components/ListingsGrid";
 import { ListingCard } from "./components/ListingCard";
 import { Icon } from "../../../components/ui/Icon";
-import { PineTree } from "../../../components/ui/PineTree";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { StatusBadge } from "../../../components/ui/Badge";
 import { PageSpinner, ErrorBanner } from "../../../components/ui/Feedback";
 import { formatDate, formatMoney, formatPaymentMethod, formatStatus } from "../../../lib/format";
 
-// Cycles through the hero photo stack so it reads as a little slideshow of
-// the kind of houses on offer, instead of two fixed photos.
-const HERO_PHOTOS = [
-  "https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&w=800&q=80", // log cabin in the forest
-  "https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=800&q=80", // mountain hut at sunset
-  "https://images.unsplash.com/photo-1521401830884-6c03c1c87ebb?auto=format&fit=crop&w=800&q=80", // treehouse
-  "https://images.unsplash.com/photo-1506974210756-8e1b8985d348?auto=format&fit=crop&w=800&q=80", // log cabin, mountain backdrop
-  "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=800&q=80", // villa with pool
+// Sample/placeholder imagery for the hero slideshow, shown only until real
+// listings have their own cover photos uploaded (see HomePage's heroPhotos) —
+// a street of houses and actual house exteriors, not a nature/cabin theme.
+const SAMPLE_HERO_PHOTOS = [
+  "https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&w=800&q=80", // row houses on a street
+  "https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=800&q=80", // house with porch
+  "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80", // modern house with pool
+  "https://images.unsplash.com/photo-1448630360428-65456885c650?auto=format&fit=crop&w=800&q=80", // city building exterior
 ];
 const HERO_PHOTO_INTERVAL_MS = 3200;
 
@@ -50,9 +49,14 @@ const ABOUT_VALUES = [
 // header nav (see PublicLayout) jumps between these sections by id instead
 // of routing to separate pages.
 export function HomePage() {
+  const houseListings = useQuery(api.listings.list, { type: "house" });
+  const heroPhotos = (houseListings ?? [])
+    .map((l) => l.coverPhotoUrl)
+    .filter((url): url is string => Boolean(url));
+
   return (
     <div className="flex flex-col">
-      <HeroSection />
+      <HeroSection photos={heroPhotos} />
       <HousesSection />
       <VehiclesSection />
       <ToursSection />
@@ -67,7 +71,7 @@ function SectionHeading({ eyebrow, title, description }: { eyebrow: string; titl
   return (
     <div className="mb-8 max-w-2xl">
       <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-brand-500">
-        <PineTree size={14} /> {eyebrow}
+        <span className="h-px w-6 bg-brand-400" aria-hidden="true" /> {eyebrow}
       </span>
       <h2 className="mt-2 font-serif text-2xl font-semibold text-ink-900 sm:text-3xl">{title}</h2>
       {description && <p className="mt-2 text-sm text-ink-500">{description}</p>}
@@ -102,6 +106,7 @@ function HeroPhotoStack({ photos }: { photos: string[] }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
+    if (photos.length < 2) return;
     const id = setInterval(() => setIndex((i) => (i + 1) % photos.length), HERO_PHOTO_INTERVAL_MS);
     return () => clearInterval(id);
   }, [photos.length]);
@@ -114,26 +119,29 @@ function HeroPhotoStack({ photos }: { photos: string[] }) {
   );
 }
 
-function HeroSection() {
+// Real cover photos take over the moment staff upload them (see HomePage's
+// heroPhotos query) — until then, falls back to sample house/street imagery
+// rather than going photo-less.
+function HeroVisual({ photos }: { photos: string[] }) {
+  return <HeroPhotoStack photos={photos.length > 0 ? photos : SAMPLE_HERO_PHOTOS} />;
+}
+
+function HeroSection({ photos }: { photos: string[] }) {
   return (
     <section className="relative border-b border-ink-800 bg-ink-900 px-4 pb-28 pt-16 sm:px-6 lg:px-8 lg:pt-20">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <PineTree className="absolute -left-2 bottom-24 text-ink-800" size={70} />
-        <PineTree className="absolute left-16 bottom-16 hidden text-ink-800 sm:block" size={46} />
-        <PineTree className="absolute right-6 top-10 hidden text-ink-800 lg:block" size={38} />
-      </div>
-
       <div className="relative mx-auto grid max-w-6xl gap-16 lg:grid-cols-2 lg:items-center lg:gap-10">
-        <HeroPhotoStack photos={HERO_PHOTOS} />
+        <HeroVisual photos={photos} />
 
         <div className="flex flex-col items-start gap-6 text-left">
           <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-brand-400">
             <Icon name="geo-alt-fill" /> Town Proper
           </span>
           <h1 className="font-serif text-4xl font-semibold text-white sm:text-5xl">
-            Reconnect with <em className="italic text-brand-300">Nature</em>
+            Your Home <em className="italic text-brand-300">With Harmony</em>
           </h1>
-          <p className="text-base text-ink-300">Breathe in fresh air at our Town Proper cabin getaway.</p>
+          <p className="text-base text-ink-300">
+            Staycation houses, van &amp; car rentals, and city tours — all based right in Town Proper.
+          </p>
           <Link
             to="/#houses"
             className="inline-flex items-center gap-2 rounded-lg border-2 border-white px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-ink-900"
