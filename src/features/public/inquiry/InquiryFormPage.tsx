@@ -17,7 +17,7 @@ export function InquiryFormPage() {
   const draft = useInquiryDraftStore((s) => s.draft);
   const setCustomerInfo = useInquiryDraftStore((s) => s.setCustomerInfo);
   const setNotes = useInquiryDraftStore((s) => s.setNotes);
-  const resetDraft = useInquiryDraftStore((s) => s.reset);
+  const resetListing = useInquiryDraftStore((s) => s.resetListing);
 
   const [fullName, setFullName] = useState(draft.customer.fullName);
   const [email, setEmail] = useState(draft.customer.email);
@@ -72,8 +72,9 @@ export function InquiryFormPage() {
         notes: notes.trim() || undefined,
       });
       const listingTitle = listing!.title;
-      resetDraft();
-      navigate("/inquiry-sent", { state: { listingTitle } });
+      const listingType = listing!.type;
+      resetListing();
+      navigate("/inquiry-sent", { state: { listingTitle, listingType } });
     } catch (err) {
       setError(getErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
