@@ -1,5 +1,5 @@
-import { type ReactNode, useEffect, useState } from "react";
-import { useQuery } from "convex/react";
+import { type ReactNode, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { Link } from "react-router-dom";
 import { api } from "../../../../convex/_generated/api";
 import { SearchBar } from "./components/SearchBar";
@@ -7,21 +7,11 @@ import { ListingsGrid } from "./components/ListingsGrid";
 import { ListingCard } from "./components/ListingCard";
 import { Icon } from "../../../components/ui/Icon";
 import { Button } from "../../../components/ui/Button";
-import { Input } from "../../../components/ui/Input";
+import { Input, Textarea } from "../../../components/ui/Input";
 import { StatusBadge } from "../../../components/ui/Badge";
 import { PageSpinner, ErrorBanner } from "../../../components/ui/Feedback";
 import { formatDate, formatMoney, formatPaymentMethod, formatStatus } from "../../../lib/format";
-
-// Sample/placeholder imagery for the hero slideshow, shown only until real
-// listings have their own cover photos uploaded (see HomePage's heroPhotos) —
-// a street of houses and actual house exteriors, not a nature/cabin theme.
-const SAMPLE_HERO_PHOTOS = [
-  "https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&w=800&q=80", // row houses on a street
-  "https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=800&q=80", // house with porch
-  "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80", // modern house with pool
-  "https://images.unsplash.com/photo-1448630360428-65456885c650?auto=format&fit=crop&w=800&q=80", // city building exterior
-];
-const HERO_PHOTO_INTERVAL_MS = 3200;
+import { getErrorMessage } from "../../../lib/errors";
 
 const ABOUT_PHOTO = "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=800&q=80";
 
@@ -49,14 +39,9 @@ const ABOUT_VALUES = [
 // header nav (see PublicLayout) jumps between these sections by id instead
 // of routing to separate pages.
 export function HomePage() {
-  const houseListings = useQuery(api.listings.list, { type: "house" });
-  const heroPhotos = (houseListings ?? [])
-    .map((l) => l.coverPhotoUrl)
-    .filter((url): url is string => Boolean(url));
-
   return (
     <div className="flex flex-col">
-      <HeroSection photos={heroPhotos} />
+      <HeroSection />
       <HousesSection />
       <VehiclesSection />
       <ToursSection />
@@ -73,87 +58,78 @@ function SectionHeading({ eyebrow, title, description }: { eyebrow: string; titl
       <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-brand-500">
         <span className="h-px w-6 bg-brand-400" aria-hidden="true" /> {eyebrow}
       </span>
-      <h2 className="mt-2 font-serif text-2xl font-semibold text-ink-900 sm:text-3xl">{title}</h2>
+      <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">{title}</h2>
       {description && <p className="mt-2 text-sm text-ink-500">{description}</p>}
     </div>
   );
 }
 
-// Every photo for this frame is already in the DOM, stacked — advancing just
-// crossfades opacity between the current and next one, instead of swapping
-// the src (which would just hard-cut, or popping a new element in).
-function PhotoFrame({ photos, activeIndex, className }: { photos: string[]; activeIndex: number; className: string }) {
+// The YHWH crest, big, with the brand name set in its blank middle band (the
+// same way the printed logo has it). yhwh-crest.png is yhwh-clear.png with
+// its off-white background made transparent, so the hero's glow shows through.
+function HeroCrest() {
   return (
-    <div className={`absolute overflow-hidden rounded-sm border-4 border-white bg-white shadow-popover ${className}`}>
-      {photos.map((photo, i) => (
-        <img
-          key={photo}
-          src={photo}
-          alt="Staycation house, vehicle, or tour on offer"
-          className={`absolute inset-0 h-full w-full rounded-[1px] object-cover transition-opacity duration-1000 ease-in-out ${
-            i === activeIndex ? "opacity-100" : "opacity-0"
-          }`}
-        />
-      ))}
+    <div className="@container relative mx-auto aspect-square w-full max-w-[17rem] sm:max-w-md lg:max-w-lg">
+      <img src="/yhwh-crest.png" alt="" className="h-full w-full" />
+      {/* Band sits between ~50% and ~69% of the image height. */}
+      <div className="absolute inset-x-[8%] top-[50%] flex h-[19%] flex-col items-center justify-center text-center">
+        <span className="font-serif text-[7.2cqw] leading-none tracking-[0.18em] text-ink-900">YHWH TRANSIENT</span>
+        <span className="mt-[1.5cqw] text-[3.4cqw] text-ink-600">Your Home With Harmony</span>
+      </div>
     </div>
   );
 }
 
-// A little "picking the next one" slideshow: every tick the back and front
-// polaroids both crossfade to the next photo in the list, looping forever
-// through the whole set.
-function HeroPhotoStack({ photos }: { photos: string[] }) {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (photos.length < 2) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % photos.length), HERO_PHOTO_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [photos.length]);
-
+function HeroSection() {
   return (
-    <div className="relative mx-auto h-80 w-full max-w-sm sm:h-96">
-      <PhotoFrame photos={photos} activeIndex={index % photos.length} className="left-0 top-0 h-full w-11/12 -rotate-3" />
-      <PhotoFrame photos={photos} activeIndex={(index + 1) % photos.length} className="bottom-0 right-0 h-3/5 w-3/5 rotate-2" />
-    </div>
-  );
-}
+    <section className="relative overflow-hidden bg-white px-4 pb-6 pt-10 sm:px-6 sm:pb-16 lg:px-8 lg:pb-24 lg:pt-16">
+      {/* Soft warm glow behind the headline, like a sunlit wash. */}
+      <div
+        className="pointer-events-none absolute -left-40 -top-40 h-[42rem] w-[56rem] rounded-full bg-[radial-gradient(closest-side,var(--color-brand-100),transparent)] opacity-90"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -right-32 top-10 h-[32rem] w-[32rem] rounded-full bg-[radial-gradient(closest-side,var(--color-brand-50),transparent)]"
+        aria-hidden="true"
+      />
 
-// Real cover photos take over the moment staff upload them (see HomePage's
-// heroPhotos query) — until then, falls back to sample house/street imagery
-// rather than going photo-less.
-function HeroVisual({ photos }: { photos: string[] }) {
-  return <HeroPhotoStack photos={photos.length > 0 ? photos : SAMPLE_HERO_PHOTOS} />;
-}
-
-function HeroSection({ photos }: { photos: string[] }) {
-  return (
-    <section className="relative border-b border-ink-800 bg-ink-900 px-4 pb-28 pt-16 sm:px-6 lg:px-8 lg:pt-20">
-      <div className="relative mx-auto grid max-w-6xl gap-16 lg:grid-cols-2 lg:items-center lg:gap-10">
-        <HeroVisual photos={photos} />
-
-        <div className="flex flex-col items-start gap-6 text-left">
-          <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-brand-400">
+      <div className="relative mx-auto grid max-w-7xl gap-8 sm:gap-12 lg:grid-cols-2 lg:items-center lg:gap-8">
+        <div className="flex flex-col items-start gap-7">
+          <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-brand-500">
             <Icon name="geo-alt-fill" /> Town Proper
           </span>
-          <h1 className="font-serif text-4xl font-semibold text-white sm:text-5xl">
-            Your Home <em className="italic text-brand-300">With Harmony</em>
+          <h1 className="text-5xl font-extrabold uppercase leading-[0.95] tracking-tight text-ink-900 sm:text-6xl lg:text-7xl">
+            Your Home
+            <br />
+            <span className="text-brand-400">With</span>
+            <br />
+            Harmony
           </h1>
-          <p className="text-base text-ink-300">
+          <p className="max-w-md text-base text-ink-500">
             Staycation houses, van &amp; car rentals, and city tours — all based right in Town Proper.
           </p>
-          <Link
-            to="/#houses"
-            className="inline-flex items-center gap-2 rounded-lg border-2 border-white px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-ink-900"
-          >
-            Book Now
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/#houses"
+              className="rounded-full bg-brand-500 px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-600"
+            >
+              Book Now
+            </Link>
+            <Link
+              to="/partner"
+              className="rounded-full border-2 border-brand-400 px-8 py-3 text-sm font-semibold text-brand-600 transition-colors hover:bg-brand-50"
+            >
+              Become a Partner
+            </Link>
+          </div>
         </div>
-      </div>
 
-      <div className="absolute inset-x-0 bottom-0 z-10 translate-y-1/2 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto w-full max-w-3xl">
-          <SearchBar />
+        <div className="relative">
+          <HeroCrest />
+          {/* Overlaps the bottom of the crest, like the reference's search bar. */}
+          <div className="relative z-10 -mt-10 sm:-mt-20">
+            <SearchBar />
+          </div>
         </div>
       </div>
     </section>
@@ -170,7 +146,7 @@ function SectionShell({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className={`px-4 py-16 sm:px-6 lg:px-8 ${tone === "tint" ? "bg-ink-50" : "bg-white"}`}>
+    <section id={id} className={`px-4 py-12 sm:px-6 sm:py-16 lg:px-8 ${tone === "tint" ? "bg-ink-50" : "bg-white"}`}>
       <div className="mx-auto w-full max-w-7xl">{children}</div>
     </section>
   );
@@ -211,11 +187,20 @@ function HousesSection() {
 
   return (
     <SectionShell id="houses" tone="white">
-      <SectionHeading
-        eyebrow="Houses"
-        title="Available houses"
-        description="Handpicked transient houses, straight from the owner — no middleman, no fuss."
-      />
+      <div className="mb-8">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">Featured</h2>
+          <Link
+            to="/search"
+            className="shrink-0 rounded-full bg-brand-500 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-600 sm:px-6 sm:py-2.5"
+          >
+            View All
+          </Link>
+        </div>
+        <p className="mt-2 text-sm text-ink-500">
+          Handpicked transient houses, straight from the owner — no middleman, no fuss.
+        </p>
+      </div>
       <ListingsGrid
         listings={listings}
         emptyTitle="No houses available"
@@ -397,10 +382,87 @@ function MyBookingSection() {
                 Your booking is awaiting payment verification. We'll update this page once it's confirmed.
               </p>
             )}
+
+            {submitted && result.booking.status === "checked_out" && (
+              <GuestReviewForm lookup={submitted} existingStatus={result.review?.status ?? null} />
+            )}
           </div>
         )}
       </div>
     </SectionShell>
+  );
+}
+
+function GuestReviewForm({
+  lookup,
+  existingStatus,
+}: {
+  lookup: { referenceNumber: string; email: string };
+  existingStatus: string | null;
+}) {
+  const submitReview = useMutation(api.reviews.submitByGuest);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (existingStatus) {
+    return (
+      <p className="rounded-xl bg-teal-50 px-3 py-2 text-xs text-teal-800">
+        {existingStatus === "approved"
+          ? "Thanks for your review — it's now live on our site!"
+          : "Thanks for your review! We'll publish it once our team has had a look."}
+      </p>
+    );
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (rating === 0) {
+      setError("Please choose a star rating.");
+      return;
+    }
+    setError(null);
+    setIsSaving(true);
+    try {
+      await submitReview({ ...lookup, rating, comment });
+    } catch (err) {
+      setError(getErrorMessage(err, "Could not send your review."));
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3 border-t border-ink-100 pt-4">
+      <p className="text-sm font-medium text-ink-800">How was your stay?</p>
+      <div className="flex gap-1 text-2xl text-amber-500">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            onClick={() => setRating(star)}
+            aria-label={`${star} star${star === 1 ? "" : "s"}`}
+            className="cursor-pointer transition-transform hover:scale-110"
+          >
+            <Icon name={star <= rating ? "star-fill" : "star"} />
+          </button>
+        ))}
+      </div>
+      <Textarea
+        label="Your review"
+        rows={3}
+        maxLength={500}
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="What did you like about it?"
+        required
+      />
+      {error && <ErrorBanner message={error} />}
+      <Button type="submit" size="sm" className="self-start" isLoading={isSaving}>
+        Submit review
+      </Button>
+    </form>
   );
 }
 

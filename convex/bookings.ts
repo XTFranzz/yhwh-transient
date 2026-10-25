@@ -189,8 +189,12 @@ export const lookupByReferenceAndEmail = query({
       .query("payments")
       .withIndex("by_bookingId", (q) => q.eq("bookingId", booking._id))
       .collect();
+    const review = await ctx.db
+      .query("reviews")
+      .withIndex("by_bookingId", (q) => q.eq("bookingId", booking._id))
+      .first();
 
-    return { booking, customer, listing, payments };
+    return { booking, customer, listing, payments, review: review ? { status: review.status } : null };
   },
 });
 
