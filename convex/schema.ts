@@ -175,6 +175,35 @@ export default defineSchema({
     .index("by_bookingId", ["bookingId"])
     .index("by_status", ["status"]),
 
+  // "Be a Partner" applications from the public site: owners who want to
+  // list a house, vehicle, or tour with YHWH. Staff follow up offline, like
+  // inquiries — nothing is created automatically.
+  partnerApplications: defineTable({
+    fullName: v.string(),
+    email: v.string(),
+    phone: v.string(),
+    offering: v.union(v.literal("house"), v.literal("vehicle"), v.literal("tour"), v.literal("other")),
+    location: v.string(),
+    message: v.optional(v.string()),
+    status: v.union(v.literal("new"), v.literal("contacted"), v.literal("approved"), v.literal("declined")),
+  }).index("by_status", ["status"]),
+
+  // Guest reviews, shown in the public site's review popups once approved.
+  // Two sources: staff enter reviews collected elsewhere (Facebook,
+  // Messenger) — approved immediately — or a guest submits one from
+  // "My booking" after checkout, which waits for staff approval.
+  reviews: defineTable({
+    listingId: v.id("listings"),
+    bookingId: v.optional(v.id("bookings")), // set only for guest-submitted reviews
+    guestName: v.string(),
+    rating: v.number(), // 1–5
+    comment: v.string(),
+    source: v.union(v.literal("staff"), v.literal("guest")),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("hidden")),
+  })
+    .index("by_status", ["status"])
+    .index("by_bookingId", ["bookingId"]),
+
   // Phase 1 schema stub — populated by bookings.updateStatus on checkout,
   // no admin UI until Phase 2.
   housekeepingStatuses: defineTable({

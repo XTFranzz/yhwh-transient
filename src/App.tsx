@@ -12,6 +12,7 @@ import { TourDetailPage } from "./features/public/tours/TourDetailPage";
 import { InquiryFormPage } from "./features/public/inquiry/InquiryFormPage";
 import { InquirySentPage } from "./features/public/inquiry/InquirySentPage";
 import { FaqPage } from "./features/public/info/FaqPage";
+import { PartnerPage } from "./features/public/partner/PartnerPage";
 
 import { LoginPage } from "./features/admin/auth/LoginPage";
 import { DashboardPage } from "./features/admin/dashboard/DashboardPage";
@@ -21,6 +22,8 @@ import { ReservationsListPage } from "./features/admin/reservations/Reservations
 import { ReservationDetailPage } from "./features/admin/reservations/ReservationDetailPage";
 import { NewReservationPage } from "./features/admin/reservations/NewReservationPage";
 import { InquiriesListPage } from "./features/admin/inquiries/InquiriesListPage";
+import { ReviewsListPage } from "./features/admin/reviews/ReviewsListPage";
+import { PartnersListPage } from "./features/admin/partners/PartnersListPage";
 import { InvoicesListPage } from "./features/admin/invoices/InvoicesListPage";
 import { InvoiceDetailPage } from "./features/admin/invoices/InvoiceDetailPage";
 import { PaymentsAnalyticsPage } from "./features/admin/payments/PaymentsAnalyticsPage";
@@ -42,6 +45,7 @@ export default function App() {
           <Route path="/inquire/:slug" element={<InquiryFormPage />} />
           <Route path="/inquiry-sent" element={<InquirySentPage />} />
           <Route path="/faqs" element={<FaqPage />} />
+          <Route path="/partner" element={<PartnerPage />} />
 
           {/* These are now sections on the one-page homepage; keep the old URLs working. */}
           <Route path="/about" element={<Navigate to="/#about" replace />} />
@@ -65,6 +69,15 @@ export default function App() {
           <Route path="reservations/new" element={<NewReservationPage />} />
           <Route path="reservations/:bookingId" element={<ReservationDetailPage />} />
           <Route path="inquiries" element={<InquiriesListPage />} />
+          <Route path="reviews" element={<ReviewsListPage />} />
+          <Route
+            path="partners"
+            element={
+              <AdminGuard roles={["admin", "superadmin"]}>
+                <PartnersListPage />
+              </AdminGuard>
+            }
+          />
           <Route path="invoices" element={<InvoicesListPage />} />
           <Route path="invoices/:kind/:id" element={<InvoiceDetailPage />} />
           <Route path="listings" element={<ListingsListPage />} />

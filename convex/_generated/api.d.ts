@@ -14,6 +14,7 @@ import type * as bookings from "../bookings.js";
 import type * as bootstrap from "../bootstrap.js";
 import type * as customers from "../customers.js";
 import type * as dashboard from "../dashboard.js";
+import type * as demo from "../demo.js";
 import type * as http from "../http.js";
 import type * as inquiries from "../inquiries.js";
 import type * as invoices from "../invoices.js";
@@ -25,7 +26,9 @@ import type * as lib_pricing from "../lib/pricing.js";
 import type * as lib_referenceNumber from "../lib/referenceNumber.js";
 import type * as lib_slug from "../lib/slug.js";
 import type * as listings from "../listings.js";
+import type * as partners from "../partners.js";
 import type * as payments from "../payments.js";
+import type * as reviews from "../reviews.js";
 import type * as seed from "../seed.js";
 import type * as staff from "../staff.js";
 
@@ -42,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   bootstrap: typeof bootstrap;
   customers: typeof customers;
   dashboard: typeof dashboard;
+  demo: typeof demo;
   http: typeof http;
   inquiries: typeof inquiries;
   invoices: typeof invoices;
@@ -53,7 +57,9 @@ declare const fullApi: ApiFromModules<{
   "lib/referenceNumber": typeof lib_referenceNumber;
   "lib/slug": typeof lib_slug;
   listings: typeof listings;
+  partners: typeof partners;
   payments: typeof payments;
+  reviews: typeof reviews;
   seed: typeof seed;
   staff: typeof staff;
 }>;
