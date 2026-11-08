@@ -5,6 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 import { SearchBar } from "./components/SearchBar";
 import { ListingsGrid } from "./components/ListingsGrid";
 import { ListingCard } from "./components/ListingCard";
+import { MobileListingCard } from "./components/MobileListingCard";
 import { Icon } from "../../../components/ui/Icon";
 import { Button } from "../../../components/ui/Button";
 import { Input, Textarea } from "../../../components/ui/Input";
@@ -16,6 +17,24 @@ import { getErrorMessage } from "../../../lib/errors";
 const ABOUT_PHOTO = "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=800&q=80";
 
 const VEHICLE_ICON: Record<string, string> = { van: "truck", car: "car-front", motorcycle: "scooter" };
+
+// Phone-only shortcut tiles under the "Where to?" search pill.
+const MOBILE_CATEGORIES = [
+  { to: "/#houses", label: "Houses", icon: "house-heart-fill" },
+  { to: "/#vehicles", label: "Vehicles", icon: "truck" },
+  { to: "/#tours", label: "Tours", icon: "signpost-2-fill" },
+  { to: "/partner", label: "Partner", icon: "briefcase-fill" },
+];
+
+// "Purok 3, Town Proper, Sample City" → "Town Proper, Sample City".
+function areaFromAddress(address: string): string {
+  return address
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(-2)
+    .join(", ");
+}
 
 const ABOUT_VALUES = [
   {
@@ -41,6 +60,7 @@ const ABOUT_VALUES = [
 export function HomePage() {
   return (
     <div className="flex flex-col">
+      <MobileHero />
       <HeroSection />
       <HousesSection />
       <VehiclesSection />
@@ -54,12 +74,12 @@ export function HomePage() {
 
 function SectionHeading({ eyebrow, title, description }: { eyebrow: string; title: string; description?: string }) {
   return (
-    <div className="mb-8 max-w-2xl">
-      <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-brand-500">
+    <div className="mb-4 max-w-2xl md:mb-8">
+      <span className="hidden items-center gap-2 text-xs font-semibold uppercase tracking-widest text-brand-500 md:flex">
         <span className="h-px w-6 bg-brand-400" aria-hidden="true" /> {eyebrow}
       </span>
-      <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">{title}</h2>
-      {description && <p className="mt-2 text-sm text-ink-500">{description}</p>}
+      <h2 className="text-xl font-bold tracking-tight text-ink-900 md:mt-2 md:text-4xl md:font-extrabold">{title}</h2>
+      {description && <p className="mt-1 text-sm text-ink-500 md:mt-2">{description}</p>}
     </div>
   );
 }
@@ -80,9 +100,50 @@ function HeroCrest() {
   );
 }
 
+// Phones get an app-style start: greeting, the crest with the search bar
+// overlapping it, and shortcut tiles — instead of the big desktop hero.
+function MobileHero() {
+  return (
+    <section className="relative overflow-hidden px-4 pb-2 pt-7 md:hidden">
+      <div
+        className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-[radial-gradient(closest-side,var(--color-brand-100),transparent)]"
+        aria-hidden="true"
+      />
+      <div className="relative">
+        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-brand-500">
+          <Icon name="geo-alt-fill" /> Town Proper
+        </p>
+        <h1 className="mt-2 text-[1.75rem] font-extrabold leading-tight tracking-tight text-ink-900">
+          Let's find your <span className="text-brand-400">perfect stay!</span>
+        </h1>
+
+        {/* The crest + search bar stay on phones too (client request). */}
+        <div className="mt-4">
+          <HeroCrest />
+          <div className="relative z-10 -mt-10">
+            <SearchBar />
+          </div>
+        </div>
+
+        <h2 className="mt-7 text-lg font-bold text-ink-900">What are you looking for?</h2>
+        <div className="mt-3 grid grid-cols-4 gap-3">
+          {MOBILE_CATEGORIES.map((category) => (
+            <Link key={category.label} to={category.to} className="flex flex-col items-center gap-2">
+              <span className="flex aspect-square w-full items-center justify-center rounded-2xl border border-ink-100 bg-white text-2xl text-brand-500 shadow-card">
+                <Icon name={category.icon} />
+              </span>
+              <span className="text-xs font-medium text-ink-700">{category.label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-white px-4 pb-6 pt-10 sm:px-6 sm:pb-16 lg:px-8 lg:pb-24 lg:pt-16">
+    <section className="relative hidden overflow-hidden bg-white px-4 pb-6 pt-10 sm:px-6 sm:pb-16 md:block lg:px-8 lg:pb-24 lg:pt-16">
       {/* Soft warm glow behind the headline, like a sunlit wash. */}
       <div
         className="pointer-events-none absolute -left-40 -top-40 h-[42rem] w-[56rem] rounded-full bg-[radial-gradient(closest-side,var(--color-brand-100),transparent)] opacity-90"
@@ -146,7 +207,7 @@ function SectionShell({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className={`px-4 py-12 sm:px-6 sm:py-16 lg:px-8 ${tone === "tint" ? "bg-ink-50" : "bg-white"}`}>
+    <section id={id} className={`px-4 py-7 sm:px-6 md:py-16 lg:px-8 ${tone === "tint" ? "bg-ink-50" : "bg-white"}`}>
       <div className="mx-auto w-full max-w-7xl">{children}</div>
     </section>
   );
@@ -187,17 +248,20 @@ function HousesSection() {
 
   return (
     <SectionShell id="houses" tone="white">
-      <div className="mb-8">
+      <div className="mb-4 md:mb-8">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">Featured</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink-900 md:text-4xl md:font-extrabold">
+            <span className="md:hidden">Stays for you</span>
+            <span className="hidden md:inline">Featured</span>
+          </h2>
           <Link
             to="/search"
-            className="shrink-0 rounded-full bg-brand-500 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-600 sm:px-6 sm:py-2.5"
+            className="shrink-0 text-sm font-semibold text-brand-600 md:rounded-full md:bg-brand-500 md:px-6 md:py-2.5 md:text-white md:transition-colors md:hover:bg-brand-600"
           >
-            View All
+            View all
           </Link>
         </div>
-        <p className="mt-2 text-sm text-ink-500">
+        <p className="mt-2 hidden text-sm text-ink-500 md:block">
           Handpicked transient houses, straight from the owner — no middleman, no fuss.
         </p>
       </div>
@@ -205,6 +269,17 @@ function HousesSection() {
         listings={listings}
         emptyTitle="No houses available"
         emptyDescription="Check back soon — new houses are added regularly."
+        renderMobileCard={(listing) => (
+          <MobileListingCard
+            to={`/listings/${listing.slug}`}
+            title={listing.title}
+            coverPhotoUrl={listing.coverPhotoUrl}
+            basePriceCentavos={listing.basePriceCentavos}
+            priceSuffix="/ night"
+            placeholderIcon="house-door"
+            meta={listing.details ? areaFromAddress(listing.details.address) : undefined}
+          />
+        )}
         renderCard={(listing) => (
           <ListingCard
             to={`/listings/${listing.slug}`}
@@ -239,6 +314,22 @@ function VehiclesSection() {
         listings={listings}
         emptyTitle="No vehicles available yet"
         emptyDescription="Check back soon for van and car rental options."
+        renderMobileCard={(listing) => (
+          <MobileListingCard
+            to={`/vehicles/${listing.slug}`}
+            title={listing.title}
+            coverPhotoUrl={listing.coverPhotoUrl}
+            basePriceCentavos={listing.basePriceCentavos}
+            priceSuffix="/ day"
+            placeholderIcon={listing.details ? VEHICLE_ICON[listing.details.vehicleType] : "truck"}
+            metaIcon="people-fill"
+            meta={
+              listing.details
+                ? `${listing.details.seats} seats · ${listing.details.transmission}${listing.details.withDriver ? " · with driver" : ""}`
+                : undefined
+            }
+          />
+        )}
         renderCard={(listing) => (
           <ListingCard
             to={`/vehicles/${listing.slug}`}
@@ -273,6 +364,18 @@ function ToursSection() {
         listings={listings}
         emptyTitle="No tours available yet"
         emptyDescription="Check back soon for guided city tours."
+        renderMobileCard={(listing) => (
+          <MobileListingCard
+            to={`/tours/${listing.slug}`}
+            title={listing.title}
+            coverPhotoUrl={listing.coverPhotoUrl}
+            basePriceCentavos={listing.basePriceCentavos}
+            priceSuffix="/ person"
+            placeholderIcon="signpost-2"
+            metaIcon="clock-fill"
+            meta={listing.details ? `${listing.details.durationHours} hours · min ${listing.details.minPax} pax` : undefined}
+          />
+        )}
         renderCard={(listing) => (
           <ListingCard
             to={`/tours/${listing.slug}`}

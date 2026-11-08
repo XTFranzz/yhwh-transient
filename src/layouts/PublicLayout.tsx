@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { Icon } from "../components/ui/Icon";
 import { LogoWordmark } from "../components/ui/Logo";
 import { SocialProofPopup } from "../components/SocialProofPopup";
+import { MobileTabBar } from "./MobileTabBar";
 
 type NavKey = "home" | "services" | "about" | "partner";
 
@@ -27,6 +28,9 @@ export function PublicLayout() {
   const [spyNav, setSpyNav] = useState<NavKey>("home");
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Phone tab bar everywhere except pages with their own fixed bottom bar
+  // (listing details' "Book now") or a focused form.
+  const tabBar = !/^\/(listings|vehicles|tours|inquire)\//.test(location.pathname);
   const activeNav: NavKey | null = location.pathname === "/partner" ? "partner" : isHome ? spyNav : null;
 
   // Close the mobile menu whenever one of its links navigates.
@@ -80,7 +84,7 @@ export function PublicLayout() {
     }`;
 
   return (
-    <div className="flex min-h-svh flex-col bg-white">
+    <div className={`flex min-h-svh flex-col bg-white ${tabBar ? "pb-24 md:pb-0" : ""}`}>
       <header className="sticky top-0 z-40 border-b border-ink-100/70 bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3.5 sm:px-6 lg:px-8">
           <Link to="/" aria-label="YHWH Transient home">
@@ -219,6 +223,7 @@ export function PublicLayout() {
       </footer>
 
       <SocialProofPopup />
+      {tabBar && <MobileTabBar />}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ListingMedia, MobileBookBar } from "../listings/components/ListingMedia";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
@@ -7,7 +8,6 @@ import { useInquiryDraftStore } from "../../../lib/store";
 import { Button } from "../../../components/ui/Button";
 import { PageSpinner, ErrorBanner } from "../../../components/ui/Feedback";
 import { AvailabilityCalendar } from "../listings/components/AvailabilityCalendar";
-import { Icon } from "../../../components/ui/Icon";
 
 interface TourDetails {
   durationHours: number;
@@ -72,26 +72,13 @@ export function TourDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="text-2xl font-semibold text-ink-900">{listing.title}</h1>
-      {details && <p className="mt-1 text-sm text-ink-500">Meeting point: {details.meetingPoint}</p>}
-
-      {listing.photos.length > 0 ? (
-        <div className="mt-4 grid grid-cols-2 gap-2 overflow-hidden rounded-2xl sm:grid-cols-4 sm:grid-rows-2">
-          {listing.photos.slice(0, 5).map((photo, i) => (
-            <img
-              key={photo.id}
-              src={photo.url ?? undefined}
-              alt={listing.title}
-              className={`h-48 w-full object-cover sm:h-64 ${i === 0 ? "sm:col-span-2 sm:row-span-2 sm:h-full" : ""}`}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="mt-4 flex h-64 w-full items-center justify-center rounded-2xl bg-ink-100">
-          <Icon name="signpost-2" className="text-5xl text-ink-300" />
-        </div>
-      )}
+    <div className="mx-auto max-w-6xl px-4 pb-28 pt-8 sm:px-6 md:pb-8 lg:px-8">
+      <ListingMedia
+        title={listing.title}
+        subtitle={details ? `Meeting point: ${details.meetingPoint}` : undefined}
+        photos={listing.photos}
+        placeholderIcon={"signpost-2"}
+      />
 
       <div className="mt-8 grid grid-cols-1 gap-10 lg:grid-cols-3">
         <div className="flex flex-col gap-8 lg:col-span-2">
@@ -119,7 +106,7 @@ export function TourDetailPage() {
         </div>
 
         <div className="lg:col-span-1">
-          <div className="sticky top-24 flex flex-col gap-4 rounded-2xl border border-ink-100 p-5 shadow-card">
+          <div id="book" className="sticky top-24 flex scroll-mt-24 flex-col gap-4 rounded-2xl border border-ink-100 p-5 shadow-card">
             <p className="text-lg font-semibold text-ink-900">
               {formatMoney(listing.basePriceCentavos)} <span className="text-sm font-normal text-ink-500">/ person</span>
             </p>
@@ -169,6 +156,7 @@ export function TourDetailPage() {
           </div>
         </div>
       </div>
+      <MobileBookBar basePriceCentavos={listing.basePriceCentavos} priceSuffix="/ person" />
     </div>
   );
 }
